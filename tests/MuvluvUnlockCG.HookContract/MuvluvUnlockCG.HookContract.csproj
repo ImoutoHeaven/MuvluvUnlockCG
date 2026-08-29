@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GameDir Condition="'$(GameDir)' == ''">$(MUVLUV_GAME_DIR)</GameDir>
+  </PropertyGroup>
+
+  <Target Name="RequireGameDir" BeforeTargets="ResolveReferences"
+          Condition="'$(GameDir)' == '' or !Exists('$(GameDir)/BepInEx/interop/GameUi.dll')">
+    <Error Text="Set GameDir (or MUVLUV_GAME_DIR) to a Muv-Luv Girls Garden installation with generated BepInEx interop assemblies." />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/MuvluvUnlockCG/MuvluvUnlockCG.csproj" />
+    <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Core.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Unity.IL2CPP.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/core/Il2CppInterop.Common.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/core/Il2CppInterop.Runtime.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/core/Il2CppInterop.HarmonySupport.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/core/0Harmony.dll" Private="true" />
+    <Reference Include="$(GameDir)/BepInEx/interop/*.dll" Private="true" />
+  </ItemGroup>
+</Project>

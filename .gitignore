@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+TestResults/
+__pycache__/
+*.py[cod]
+
+# Local-only inputs and outputs.
+/.scratch/
+/artifacts/
+/evidence/
+/release/
+/docs/feasibility-report-zh.md
+/docs/post-download-investigation-zh.md
+/docs/reproducible-build-regression-zh.md
+/docs/scene-frame-memory-followup-zh.md
+/tools/verify-reproducible-build.sh

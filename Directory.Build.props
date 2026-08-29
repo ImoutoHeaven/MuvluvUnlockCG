@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      The reproducibility RCA is persisted in
+      docs/reproducible-build-regression-zh.md.  Keep deterministic compiler
+      inputs rooted at one logical path so PE/PDB/MVID bytes do not depend on
+      the checkout directory used by a Docker build.
+    -->
+    <Deterministic>true</Deterministic>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PathMap>$(MSBuildThisFileDirectory)=/muvluvunlockcg/</PathMap>
+  </PropertyGroup>
+</Project>
