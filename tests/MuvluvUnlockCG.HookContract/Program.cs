@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -530,6 +531,8 @@ internal static class Program
             }
         }
 
+        VerifyNativeEntryRetainsCatalogDecision(assembly, failures);
+
         if (failures.Count > 0)
         {
             foreach (var failure in failures)
@@ -542,6 +545,76 @@ internal static class Program
 
         Console.WriteLine($"hook-contract: {actualPatchTypes.Length}/{Cases.Length} actual patches matched; lower-level content hooks absent");
         return 0;
+    }
+
+    private static void VerifyNativeEntryRetainsCatalogDecision(
+        Assembly assembly,
+        List<string> failures)
+    {
+        const string contract = "NativeEntryCatalogRetention";
+        MethodInfo clearAll = null;
+        try
+        {
+            var runtime = assembly.GetType("MuvluvUnlockCG.MuvluvUnlockRuntime", throwOnError: true);
+            var catalogField = runtime.GetField(
+                "CatalogDecisions",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            var clearForEntry = runtime.GetMethod(
+                "ClearForEntry",
+                BindingFlags.Public | BindingFlags.Static);
+            clearAll = runtime.GetMethod(
+                "ClearAll",
+                BindingFlags.Public | BindingFlags.Static);
+            if (catalogField?.GetValue(null) is not IDictionary catalog
+                || clearForEntry is null
+                || clearAll is null)
+            {
+                throw new InvalidOperationException("runtime catalog cleanup seam is missing");
+            }
+
+            clearAll.Invoke(null, new object[] { "hook-contract-setup" });
+            var keyType = catalog.GetType().GetGenericArguments()[0];
+            var key = Activator.CreateInstance(
+                keyType,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { (IntPtr)73, 901L },
+                culture: null);
+            catalog.Add(
+                key,
+                new global::MuvluvUnlockCG.Core.EligibilityDecision(
+                    global::MuvluvUnlockCG.Core.PlaybackMode.LocalBypass,
+                    global::MuvluvUnlockCG.Core.BypassReason.UnownedMemory));
+
+            clearForEntry.Invoke(null, new object[] { null, 902L, "memory-entry-normal-contract" });
+            if (catalog.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"native entry erased sibling catalog decisions; expected 1, actual {catalog.Count}");
+            }
+
+            clearAll.Invoke(null, new object[] { "hook-contract-full-clear" });
+            if (catalog.Count != 0)
+            {
+                throw new InvalidOperationException("full cleanup retained catalog decisions");
+            }
+
+            Console.WriteLine($"PASS {contract} <- native d60/d61 entry cleanup retains current catalog decisions");
+        }
+        catch (Exception exception)
+        {
+            failures.Add($"{contract}: {exception.GetBaseException().Message}");
+        }
+        finally
+        {
+            try
+            {
+                clearAll?.Invoke(null, new object[] { "hook-contract-cleanup" });
+            }
+            catch
+            {
+            }
+        }
     }
 
     private static CallbackSignature[] ResolveCallbacks(Type patchType, List<string> failures)

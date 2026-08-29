@@ -103,6 +103,11 @@ internal static class MuvluvUnlockRuntime
 
     public static bool ClearAll(string reason = "unspecified")
     {
+        return ClearState(reason, clearCatalogDecisions: true);
+    }
+
+    private static bool ClearState(string reason, bool clearCatalogDecisions)
+    {
         // Session lifecycle hooks and catalog capture use the same lock order:
         // registry first, catalog second. The exact replacement/leave seams are
         // selected EpisodeController d__60/d__61 and ScenarioController
@@ -112,7 +117,11 @@ internal static class MuvluvUnlockRuntime
         var visibilityRestored = RestoreAllCells();
         lock (Gate)
         {
-            CatalogDecisions.Clear();
+            if (clearCatalogDecisions)
+            {
+                CatalogDecisions.Clear();
+            }
+
             _activeScenarioController = IntPtr.Zero;
             _deferredLeave = null;
         }
@@ -126,7 +135,7 @@ internal static class MuvluvUnlockRuntime
             && VisibleCells.Count == 0
             && EventUnlockPresentations.Count == 0
             && TemporaryLockMessages.Count == 0;
-        SafeLogInfo($"state clear reason={reason} before={before} after={SafeDescribeState()} visibilityRestored={visibilityRestored}");
+        SafeLogInfo($"state clear reason={reason} before={before} after={SafeDescribeState()} visibilityRestored={visibilityRestored} catalogDecisionsCleared={clearCatalogDecisions}");
 
         return success;
     }
@@ -210,16 +219,33 @@ internal static class MuvluvUnlockRuntime
             var originalHasCharacter = args.HasCharacter;
             var originalAffectionLevel = args.AffectionLevel;
             var requiredAffectionLevel = args.UnlockConditionAffectionLevel;
+            var eligibility = EligibilityPolicy.ForCharacter(new CharacterEligibilityFacts(
+                episodeMasterId,
+                originalHasCharacter,
+                originalAffectionLevel,
+                requiredAffectionLevel));
+            var locallyAvailable = true;
+            var sceneIdentityAvailable = true;
+            if (eligibility.IsLocalBypass)
+            {
+                sceneIdentityAvailable = TryResolveSceneIds(
+                    controller.memoryDB,
+                    episodeMasterId,
+                    out var sceneIds);
+                locallyAvailable = sceneIdentityAvailable && HasAvailableScene(sceneIds);
+            }
+
             var decision = EligibilityPolicy.ForCharacterCell(new CharacterCellFacts(
                 episodeMasterId,
                 originalViewable,
                 originalHasCharacter,
                 originalAffectionLevel,
-                requiredAffectionLevel));
+                requiredAffectionLevel,
+                locallyAvailable));
             // EpisodeMaster nullable ID getters are not a safe diagnostic seam:
             // the generated wrappers can throw or expose transient garbage. The
             // cell itself already contains every Character eligibility fact.
-            SafeLogInfo($"character-cell episode={episodeMasterId} originalViewable={originalViewable} ownedCharacter={originalHasCharacter} affection={originalAffectionLevel} required={requiredAffectionLevel} decision={decision.Eligibility.Mode}/{decision.Eligibility.Reason}");
+            SafeLogInfo($"character-cell episode={episodeMasterId} originalViewable={originalViewable} ownedCharacter={originalHasCharacter} affection={originalAffectionLevel} required={requiredAffectionLevel} sceneIdentityAvailable={sceneIdentityAvailable} locallyAvailable={locallyAvailable} decision={decision.Eligibility.Mode}/{decision.Eligibility.Reason}");
             Capture(controller, episodeMasterId, args, originalViewable, decision.Eligibility);
             if (decision.Eligibility.IsLocalBypass)
             {
@@ -283,12 +309,29 @@ internal static class MuvluvUnlockRuntime
                 return;
             }
 
-            var decision = EligibilityPolicy.ForMemoryCell(new MemoryCellFacts(
+            var eligibility = EligibilityPolicy.ForMemory(new MemoryEligibilityFacts(
                 episodeMasterId,
                 originalViewable,
                 isReleased,
                 hasMemoryIdentity));
-            SafeLogInfo($"memory-cell episode={episodeMasterId} originalViewable={originalViewable} originalOwned={originalViewable} released={isReleased} memoryRelation={hasMemoryIdentity} includeInCatalog={decision.IncludeInCatalog} decision={decision.Eligibility.Mode}/{decision.Eligibility.Reason}");
+            var locallyAvailable = true;
+            var sceneIdentityAvailable = true;
+            if (eligibility.IsLocalBypass)
+            {
+                sceneIdentityAvailable = TryResolveSceneIds(
+                    controller.memoryDB,
+                    episodeMasterId,
+                    out var sceneIds);
+                locallyAvailable = sceneIdentityAvailable && HasAvailableScene(sceneIds);
+            }
+
+            var decision = EligibilityPolicy.ForMemoryCell(new MemoryCellFacts(
+                episodeMasterId,
+                originalViewable,
+                isReleased,
+                hasMemoryIdentity,
+                locallyAvailable));
+            SafeLogInfo($"memory-cell episode={episodeMasterId} originalViewable={originalViewable} originalOwned={originalViewable} released={isReleased} memoryRelation={hasMemoryIdentity} sceneIdentityAvailable={sceneIdentityAvailable} locallyAvailable={locallyAvailable} includeInCatalog={decision.IncludeInCatalog} decision={decision.Eligibility.Mode}/{decision.Eligibility.Reason}");
             Capture(controller, episodeMasterId, args, originalViewable, decision.Eligibility);
             SafeLogInfo($"memory-cell episode={episodeMasterId} finalViewable={args.Viewable} includeInCatalog={decision.IncludeInCatalog} catalogDecision={decision.Eligibility.Mode}/{decision.Eligibility.Reason}");
         }
@@ -1835,12 +1878,13 @@ internal static class MuvluvUnlockRuntime
     {
         try
         {
-            // There is only one local generation. A Normal entry, a failed
-            // Local resolution, or an incomplete identity must invalidate a
-            // session from any earlier controller as well as this row. The
-            // d60/d61 MoveNext seams in the persisted full ISIL callers are
-            // the replacement-entry boundary.
-            ClearAll(reason);
+            // There is only one local generation. Entry cleanup invalidates its
+            // session and temporary presentation state, but the surrounding
+            // catalog remains active and sibling d60/d61 selections still need
+            // the decisions captured by their cell factories (evidence/decomp/
+            // full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
+            // EpisodeController.txt:3526-3780).
+            ClearState(reason, clearCatalogDecisions: false);
         }
         catch (Exception exception)
         {

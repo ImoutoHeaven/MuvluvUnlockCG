@@ -56,7 +56,8 @@ public readonly record struct CharacterCellFacts(
     bool OriginalViewable,
     bool OriginalHasCharacter,
     int? AffectionLevel,
-    int? UnlockConditionAffectionLevel);
+    int? UnlockConditionAffectionLevel,
+    bool LocallyAvailable = false);
 
 public readonly record struct CharacterCellDecision(
     long EpisodeId,
@@ -68,7 +69,8 @@ public readonly record struct MemoryCellFacts(
     long EpisodeId,
     bool OriginalViewable,
     bool MemoryIsReleased,
-    bool HasMemoryIdentity);
+    bool HasMemoryIdentity,
+    bool LocallyAvailable = false);
 
 public readonly record struct MemoryCellDecision(
     long EpisodeId,
@@ -152,6 +154,11 @@ public static class EligibilityPolicy
             facts.OriginalHasCharacter,
             facts.AffectionLevel,
             facts.UnlockConditionAffectionLevel));
+        if (eligibility.IsLocalBypass && !facts.LocallyAvailable)
+        {
+            eligibility = new EligibilityDecision(PlaybackMode.Normal, BypassReason.IncompleteEvidence);
+        }
+
         var viewable = eligibility.IsLocalBypass || facts.OriginalViewable;
         return new CharacterCellDecision(facts.EpisodeId, facts.OriginalViewable, viewable, eligibility);
     }
@@ -182,6 +189,11 @@ public static class EligibilityPolicy
             facts.OriginalViewable,
             facts.MemoryIsReleased,
             facts.HasMemoryIdentity));
+        if (eligibility.IsLocalBypass && !facts.LocallyAvailable)
+        {
+            eligibility = new EligibilityDecision(PlaybackMode.Normal, BypassReason.IncompleteEvidence);
+        }
+
         var include = facts.EpisodeId > 0 && facts.HasMemoryIdentity && facts.MemoryIsReleased;
         var viewable = eligibility.IsLocalBypass || facts.OriginalViewable;
         if (!include)

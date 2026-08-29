@@ -24,6 +24,7 @@ internal static class Program
         Run("story eligibility truth table", StoryEligibilityTruthTable);
         Run("side effect matrix", SideEffectMatrix);
         Run("cell decisions preserve native fields", CellDecisionsPreserveNativeFields);
+        Run("character and memory source availability gate", CharacterAndMemorySourceAvailabilityGate);
         Run("entry visibility promotion policy", EntryVisibilityPromotionPolicy);
         Run("cell visibility resolves only unique episode lease", CellVisibilityUniqueEpisodeLease);
         Run("cell visibility restores on fail-open lifecycle paths", CellVisibilityRestorationLifecycle);
@@ -40,7 +41,7 @@ internal static class Program
         Run("remote scene source hit and process cache", RemoteSceneSourceHitAndCache);
         Run("remote scene source fallback statuses", RemoteSceneSourceFallbackStatuses);
         Run("remote scene source prepare gate", RemoteSceneSourcePrepareGate);
-        Console.WriteLine($"tests: {_passed}/21 passed");
+        Console.WriteLine($"tests: {_passed}/22 passed");
     }
 
     private static void Run(string name, Action test)
@@ -166,7 +167,7 @@ internal static class Program
         // Evidence: selected EpisodeController <GenerateCharacterCellArgs>b__54_0
         // is the individual factory seam. LocalBypass may set only Viewable.
         var nativeCharacter = EligibilityPolicy.ForCharacterCell(
-            new CharacterCellFacts(301, false, false, 9, 10));
+            new CharacterCellFacts(301, false, false, 9, 10, LocallyAvailable: true));
         Equal(PlaybackMode.LocalBypass, nativeCharacter.Eligibility.Mode);
         True(nativeCharacter.Viewable, "local character row is viewable");
         Equal(false, nativeCharacter.OriginalViewable);
@@ -185,7 +186,7 @@ internal static class Program
         // Evidence: selected EpisodeController <GenerateMemoryCellArgs>b__56_1
         // plus b__56_0 keeps the native release boundary independent of bypass.
         var releasedMemory = EligibilityPolicy.ForMemoryCell(
-            new MemoryCellFacts(303, false, true, true));
+            new MemoryCellFacts(303, false, true, true, LocallyAvailable: true));
         Equal(PlaybackMode.LocalBypass, releasedMemory.Eligibility.Mode);
         True(releasedMemory.IncludeInCatalog, "released memory remains in catalog");
         True(releasedMemory.Viewable, "released local memory is viewable");
@@ -195,6 +196,35 @@ internal static class Program
         Equal(PlaybackMode.Normal, unreleasedMemory.Eligibility.Mode);
         False(unreleasedMemory.IncludeInCatalog, "unreleased memory remains filtered");
         False(unreleasedMemory.Viewable, "unreleased memory keeps native visibility");
+    }
+
+    private static void CharacterAndMemorySourceAvailabilityGate()
+    {
+        // README/CONTEXT require every expected SceneFrame to have a potential
+        // source before Character/Memory rows may enter LocalBypass. Missing
+        // source proof must retain the native lock and avoid local presentation.
+        var characterMissingSource = EligibilityPolicy.ForCharacterCell(
+            new CharacterCellFacts(306, false, false, 0, 1, LocallyAvailable: false));
+        Equal(PlaybackMode.Normal, characterMissingSource.Eligibility.Mode);
+        Equal(BypassReason.IncompleteEvidence, characterMissingSource.Eligibility.Reason);
+        False(characterMissingSource.Viewable, "character without SceneFrame source stays locked");
+
+        var characterAvailable = EligibilityPolicy.ForCharacterCell(
+            new CharacterCellFacts(306, false, false, 0, 1, LocallyAvailable: true));
+        Equal(PlaybackMode.LocalBypass, characterAvailable.Eligibility.Mode);
+        True(characterAvailable.Viewable, "character with SceneFrame source is visible");
+
+        var memoryMissingSource = EligibilityPolicy.ForMemoryCell(
+            new MemoryCellFacts(307, false, true, true, LocallyAvailable: false));
+        Equal(PlaybackMode.Normal, memoryMissingSource.Eligibility.Mode);
+        Equal(BypassReason.IncompleteEvidence, memoryMissingSource.Eligibility.Reason);
+        True(memoryMissingSource.IncludeInCatalog, "released memory remains under native release filtering");
+        False(memoryMissingSource.Viewable, "memory without SceneFrame source stays locked");
+
+        var memoryAvailable = EligibilityPolicy.ForMemoryCell(
+            new MemoryCellFacts(307, false, true, true, LocallyAvailable: true));
+        Equal(PlaybackMode.LocalBypass, memoryAvailable.Eligibility.Mode);
+        True(memoryAvailable.Viewable, "memory with SceneFrame source is visible");
     }
 
     private static void EntryVisibilityPromotionPolicy()
