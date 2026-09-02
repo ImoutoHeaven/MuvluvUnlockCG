@@ -200,14 +200,21 @@ internal static class Program
 
     private static void CharacterAndMemorySourceAvailabilityGate()
     {
-        // README/CONTEXT require every expected SceneFrame to have a potential
-        // source before Character/Memory rows may enter LocalBypass. Missing
-        // source proof must retain the native lock and avoid local presentation.
+        // Character and Memory rows require every expected SceneFrame from a
+        // plugin source before navigation. A double miss keeps the native lock;
+        // the native downloader may return an empty array that Refresh cannot
+        // consume (selected DownloadSceneFrameMasters d15:711-715 and
+        // ScenarioController Refresh:632-637).
         var characterMissingSource = EligibilityPolicy.ForCharacterCell(
             new CharacterCellFacts(306, false, false, 0, 1, LocallyAvailable: false));
         Equal(PlaybackMode.Normal, characterMissingSource.Eligibility.Mode);
         Equal(BypassReason.IncompleteEvidence, characterMissingSource.Eligibility.Reason);
         False(characterMissingSource.Viewable, "character without SceneFrame source stays locked");
+        var ownedCharacterMissingSource = EligibilityPolicy.ForCharacterCell(
+            new CharacterCellFacts(308, false, true, 1, 10, LocallyAvailable: false));
+        Equal(PlaybackMode.Normal, ownedCharacterMissingSource.Eligibility.Mode);
+        Equal(BypassReason.IncompleteEvidence, ownedCharacterMissingSource.Eligibility.Reason);
+        False(ownedCharacterMissingSource.Viewable, "owned affection bypass requires a plugin SceneFrame source");
 
         var characterAvailable = EligibilityPolicy.ForCharacterCell(
             new CharacterCellFacts(306, false, false, 0, 1, LocallyAvailable: true));
@@ -328,6 +335,24 @@ internal static class Program
         True(storyRegistry.TryBind(420, 520, (IntPtr)12, (IntPtr)22, out var storyBound, (IntPtr)32, (IntPtr)42), "story generation binds after provider-before-refresh");
         Equal((IntPtr)32, storyBound.EpisodeServiceController);
         Equal((IntPtr)42, storyBound.ApiClientController);
+
+        var affectionRegistry = new LocalSessionRegistry();
+        True(
+            affectionRegistry.BeginPending(
+                430,
+                new[] { 530L },
+                (IntPtr)13,
+                BypassReason.AffectionBelowRequirement,
+                out _,
+                (IntPtr)33,
+                (IntPtr)43),
+            "owned affection bypass starts after plugin content preparation");
+        True(
+            affectionRegistry.TryBeginSceneContent(530, (IntPtr)33, out _),
+            "prepared plugin SceneFrame content matches the affection session");
+        True(
+            affectionRegistry.TryBind(430, 530, (IntPtr)13, (IntPtr)23, out _),
+            "prepared affection bypass binds the LocalBypass session");
     }
 
     private static void G4SceneDocumentMapping()

@@ -129,6 +129,21 @@ internal static class Program
             },
             "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EventEpisodeCell_NestedType__Apply_d__17.txt:930-1025"),
         new HookCase(
+            "EventSelectCellStateMachinePatch",
+            "Assets.GameUi.Episode.EpisodeController+_SelectEventCell_d__58",
+            "MoveNext",
+            Array.Empty<string>(),
+            new[]
+            {
+                Prefix(
+                    typeof(void),
+                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__58))),
+                Finalizer(
+                    Value("__exception", typeof(Exception)),
+                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__58))),
+            },
+            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeComponent_NestedType___ProcessOnCreate_b__32_18_d.txt:359-364; evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController_NestedType__SelectEventCell_d__58.txt:803-832,978-1013; evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode/EpisodeController.cs:3299-3377"),
+        new HookCase(
             "MainChapterCellFactoryPatch",
             "Assets.GameUi.Episode.EpisodeController",
             "_GenerateMainChapterCellArgs_b__72_1",

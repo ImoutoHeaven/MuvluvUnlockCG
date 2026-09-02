@@ -490,6 +490,42 @@ internal static class MuvluvUnlockRuntime
         }
     }
 
+    public static void OnEventSelectCellStateMachine(
+        EpisodeController._SelectEventCell_d__58 stateMachine)
+    {
+        try
+        {
+            if (!Enabled || stateMachine is null || stateMachine.__1__state != -1)
+            {
+                return;
+            }
+
+            var controller = stateMachine.__4__this;
+            var args = stateMachine.args;
+            if (controller is null || args is null)
+            {
+                return;
+            }
+
+            var episodeMasterId = SafeEpisodeId(args);
+            var decision = ReadCapturedDecision(Pointer(controller), episodeMasterId, out var captured);
+            SafeLogInfo($"event-select chapter={episodeMasterId} decisionSource={(captured ? "cell-factory" : "missing")} decision={decision.Mode}/{decision.Reason}");
+            if (!captured || !decision.IsLocalBypass)
+            {
+                return;
+            }
+
+            args.Viewable = true;
+            args.EventEpisodeUnlockArgs = null;
+            SafeLogInfo($"event-select chapter={episodeMasterId} route=LocalBypass viewable={args.Viewable} unlockArgsCleared=true native-navigation=continue");
+        }
+        catch (Exception exception)
+        {
+            OnHookFailure(stateMachine, exception);
+            SafeLogException("event selection presentation failed; native consumer retained", exception);
+        }
+    }
+
     /// <summary>
     /// Character ApplySyncPart d32 is the persisted lock-container consumer
     /// (CharacterEpisodeCell_NestedType__ApplySyncPart_d__32.txt:1024-1142).

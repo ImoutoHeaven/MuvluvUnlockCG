@@ -53,6 +53,7 @@ internal static class HarmonyPatchDiagnostics
         typeof(CharacterApplySyncPartStateMachinePatch),
         typeof(MemoryApplyStateMachinePatch),
         typeof(EventCatalogApplyStateMachinePatch),
+        typeof(EventSelectCellStateMachinePatch),
         typeof(MainChapterCellFactoryPatch),
         typeof(MainChapterButtonFactoryPatch),
         typeof(EventChapterCellFactoryPatch),
@@ -239,9 +240,7 @@ internal static class MemoryApplyStateMachinePatch
 /// <summary>
 /// Evidence: outer EventEpisodeCell_NestedType__Apply_d__17.txt:930-1025
 /// consumes the nested EventEpisodeUnlockArgs relation and its CanUnlock bit.
-/// The safe local presentation is the captured args object's null relation,
-/// which makes SelectEventCell take native chapter navigation; never promote
-/// CanUnlock into the account-backed unlock action.
+/// This seam keeps the rendered card aligned with its captured local decision.
 /// </summary>
 [HarmonyPatch]
 internal static class EventCatalogApplyStateMachinePatch
@@ -264,6 +263,38 @@ internal static class EventCatalogApplyStateMachinePatch
     private static Exception Finalizer(
         Exception __exception,
         EventCatalogCell._Apply_d__17 __instance)
+    {
+        return HarmonyFailureCleanup.Return(__exception, __instance);
+    }
+}
+
+/// <summary>
+/// Evidence: EpisodeComponent_NestedType___ProcessOnCreate_b__32_18_d.txt:
+/// 359-364 calls this generated MoveNext directly. SelectEventCell d58 reads
+/// its own args.Viewable at :803-832 and its EventEpisodeUnlockArgs at
+/// :978-1013. The prefix applies the captured presentation only at state -1.
+/// </summary>
+[HarmonyPatch]
+internal static class EventSelectCellStateMachinePatch
+{
+    private static MethodBase TargetMethod()
+    {
+        return AccessTools.Method(
+            typeof(EpisodeController._SelectEventCell_d__58),
+            "MoveNext",
+            Type.EmptyTypes);
+    }
+
+    [HarmonyPrefix]
+    private static void Prefix(EpisodeController._SelectEventCell_d__58 __instance)
+    {
+        MuvluvUnlockRuntime.OnEventSelectCellStateMachine(__instance);
+    }
+
+    [HarmonyFinalizer]
+    private static Exception Finalizer(
+        Exception __exception,
+        EpisodeController._SelectEventCell_d__58 __instance)
     {
         return HarmonyFailureCleanup.Return(__exception, __instance);
     }
