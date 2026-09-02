@@ -46,5 +46,5 @@ Installation is manual: build against the installed game's BepInEx/interop assem
 ## Reference
 
 - [Domain glossary](CONTEXT.md)
-- [G4 export tutorial](docs/g4-scene-export-tutorial-zh.md)
+- [G4 export tutorial](docs/g4-scene-export-tutorial.md)
 - [Development rules](CONTRIBUTING.md)
