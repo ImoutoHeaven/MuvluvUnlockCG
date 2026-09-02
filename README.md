@@ -1,15 +1,15 @@
 # MuvluvUnlockCG
 
-BepInEx IL2CPP plugin for local playback of otherwise blocked Muv-Luv Girls Garden X episodes. Version: `1.2.0`.
+BepInEx IL2CPP plugin for local playback of otherwise blocked Muv-Luv Girls Garden X episodes.
 
-The plugin does not grant account ownership, affection, rewards, progress, or server-side unlocks. Episodes already allowed by the game use the untouched Normal route.
+The plugin leaves account ownership, affection, rewards, progress, and server-side unlocks unchanged. Episodes allowed by the game use the untouched Normal route.
 
 ## Routes
 
 | Episode | Normal | LocalBypass |
 | --- | --- | --- |
 | Character | Character owned and affection requirement met | Unowned or affection below requirement, with every expected SceneFrame available |
-| Memory | Original cell is viewable | Released Memory not owned, with every expected SceneFrame available |
+| Memory | Original cell is viewable | Released Memory outside the account's holdings, with every expected SceneFrame available |
 | Main | Original row is viewable | Hidden row with a complete runtime Episode→Scene relation and every expected SceneFrame available |
 | Event | Original row is viewable | Hidden row with a complete runtime Chapter→Episode→Scene relation |
 
@@ -41,7 +41,7 @@ The plugin validates manifest format, ID, byte count, SHA-256, document ID, and 
 
 ## Install
 
-Build against the installed game's BepInEx/interop assemblies, then copy `MuvluvUnlockCG.dll` and `MuvluvUnlockCG.Core.dll` to `BepInEx/plugins/`. The repository never installs files into the game automatically.
+Installation is manual: build against the installed game's BepInEx/interop assemblies, then copy `MuvluvUnlockCG.dll` and `MuvluvUnlockCG.Core.dll` to `BepInEx/plugins/`.
 
 ## Reference
 

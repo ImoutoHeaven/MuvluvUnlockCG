@@ -1,12 +1,12 @@
 # Domain glossary
 
 - **Normal**: stock playback for an episode whose original eligibility condition is satisfied. All native content and business calls remain enabled.
-- **LocalBypass**: local playback for one otherwise blocked episode. It changes no account facts and suppresses only matching business mutations.
+- **LocalBypass**: local playback for one otherwise blocked episode. It preserves account facts and suppresses only matching business mutations.
 - **Character Episode**: an episode related to a character and an affection requirement.
 - **Memory Episode**: an episode related to a Memory master. It is distinct from Character Episode.
 - **Main Episode**: story content grouped by the runtime main-story chapter relations.
 - **Event Episode**: event content grouped by a runtime Event Chapter→Episode relation.
-- **original eligibility**: the unmodified ownership, affection, release, visibility, and unlock facts supplied by the client.
+- **original eligibility**: the stock ownership, affection, release, visibility, and unlock facts supplied by the client.
 - **catalog gate**: a visibility or unlock condition that determines whether an episode can be selected.
 - **presentation mask**: a lock icon or dim layer applied by a generated cell consumer.
 - **content acquisition**: read-only SceneFrame GET, Blob, BestHTTP, Addressables, CDN, and DirectCache behavior.
@@ -14,11 +14,11 @@
 - **SceneFrame script**: the ordered `SceneFrameMaster[]` timeline consumed by Scenario playback.
 - **media asset**: image, audio, video, Spine, bundle, or other resource referenced by a SceneFrame script.
 - **expected Scene**: a Scene related to the selected episode by runtime Master data.
-- **pending generation**: a LocalBypass session created at entry but not yet bound to a Scenario controller.
+- **pending generation**: a LocalBypass session created at entry and awaiting binding to a Scenario controller.
 - **bound generation**: a pending generation matched to the exact Scenario, episode, service, and expected Scene.
 - **provenance**: the controller, service, episode, Scene, generation, and route identity required before suppressing a business call.
 - **static SceneFrame corpus**: a G4 export containing `manifest.json` and `scene/<SceneId>/scene.json`.
-- **remote catalog**: the bounded hash index at the configured static HTTPS base. It is not an entitlement source.
+- **remote catalog**: the bounded hash index at the configured static HTTPS base, used only for content lookup and integrity.
 - **source chain**: validated remote corpus, then validated plugin-local corpus.
 - **G4 offline corpus**: the licensed G4 Scene Player distribution that stores its catalog and packages encrypted at rest.
 - **structured extraction**: the licensed G4 WebView fetches each catalog `sceneUrl` while the exporter copies bounded post-decryption responses.
