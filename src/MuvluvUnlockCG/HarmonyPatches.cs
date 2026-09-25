@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Assets.Api.Client;
 using Assets.GameUi.Episode;
@@ -46,33 +47,43 @@ internal static class HarmonyFailureCleanup
 
 internal static class HarmonyPatchDiagnostics
 {
-    private static readonly Type[] PatchTypes =
+    /// <summary>
+    /// Every Harmony patch class in this assembly, discovered by scanning rather than by hand
+    /// registration, so a newly added patch class is covered without a second edit. Ordered by name
+    /// to keep diagnostics stable across builds.
+    /// </summary>
+    private static readonly Type[] PatchTypes = ScanPatchTypes();
+
+    private static Type[] ScanPatchTypes() => typeof(HarmonyPatchDiagnostics).Assembly
+        .GetTypes()
+        .Where(type => type.GetCustomAttributes(typeof(HarmonyPatch), inherit: false).Length > 0)
+        .OrderBy(type => type.Name, StringComparer.Ordinal)
+        .ToArray();
+
+    /// <summary>
+    /// Resolves every declared target before Harmony installs anything. A game update that moves a
+    /// generated seam is reported per site, and the caller aborts loading so a partially patched
+    /// plugin cannot run.
+    /// </summary>
+    internal static IReadOnlyList<string> Precheck(ManualLogSource log)
     {
-        typeof(CharacterCellFactoryPatch),
-        typeof(MemoryCellFactoryPatch),
-        typeof(CharacterApplySyncPartStateMachinePatch),
-        typeof(MemoryApplyStateMachinePatch),
-        typeof(EventCatalogApplyStateMachinePatch),
-        typeof(EventSelectCellStateMachinePatch),
-        typeof(MainChapterCellFactoryPatch),
-        typeof(MainChapterButtonFactoryPatch),
-        typeof(EventChapterCellFactoryPatch),
-        typeof(MainEpisodeFilterPatch),
-        typeof(MainEpisodeCellFactoryPatch),
-        typeof(EventEpisodeCellFactoryPatch),
-        typeof(CharacterMoveToAdventureStateMachinePatch),
-        typeof(MemoryMoveToAdventureStateMachinePatch),
-        typeof(MainMoveToScenarioStateMachinePatch),
-        typeof(EventMoveToScenarioStateMachinePatch),
-        typeof(ScenarioRefreshPatch),
-        typeof(ScenarioPostReadProvenancePatch),
-        typeof(ScenarioPostReadStateMachinePatch),
-        typeof(ScenarioPostBranchSelectionProvenancePatch),
-        typeof(ScenarioPostBranchSelectionStateMachinePatch),
-        typeof(ScenarioLeavePatch),
-        typeof(EpisodeServiceSceneFramesPatch),
-        typeof(EpisodeServicePostReadPatch),
-    };
+        var failures = PatchPreflightPolicy.Check(
+            PatchTypes.Select(patchType =>
+                (patchType.Name, new Func<System.Reflection.MethodBase>(() => ResolveTarget(patchType)))));
+
+        foreach (var failure in failures)
+        {
+            log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} precheck {failure}");
+        }
+
+        if (failures.Count == 0)
+        {
+            log.LogInfo(
+                $"{MuvluvUnlockRuntime.DiagnosticPrefix} precheck passed: patches={PatchTypes.Length}");
+        }
+
+        return failures;
+    }
 
     internal static bool LogInstall(Harmony harmony, ManualLogSource log)
     {
@@ -105,7 +116,12 @@ internal static class HarmonyPatchDiagnostics
         var targetFactory = patchType.GetMethod(
             "TargetMethod",
             BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
-        return targetFactory?.Invoke(null, null) as MethodBase;
+        if (targetFactory is null)
+        {
+            throw new MissingMethodException(patchType.FullName, "TargetMethod");
+        }
+
+        return targetFactory.Invoke(null, null) as MethodBase;
     }
 }
 

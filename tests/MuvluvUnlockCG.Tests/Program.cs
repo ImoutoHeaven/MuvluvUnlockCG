@@ -41,7 +41,10 @@ internal static class Program
         Run("remote scene source hit and process cache", RemoteSceneSourceHitAndCache);
         Run("remote scene source fallback statuses", RemoteSceneSourceFallbackStatuses);
         Run("remote scene source prepare gate", RemoteSceneSourcePrepareGate);
-        Console.WriteLine($"tests: {_passed}/22 passed");
+        Run("patch preflight reports unresolved targets", PatchPreflightReportsUnresolvedTargets);
+        Run("patch preflight accepts a fully resolved inventory", PatchPreflightAcceptsResolvedInventory);
+        Run("patch preflight aggregates failures in declaration order", PatchPreflightAggregatesInOrder);
+        Console.WriteLine($"tests: {_passed}/25 passed");
     }
 
     private static void Run(string name, Action test)
@@ -892,6 +895,60 @@ internal static class Program
         {
             DeleteTempDirectory(missingRoot);
         }
+    }
+
+    private static void PatchPreflightReportsUnresolvedTargets()
+    {
+        // Evidence: this plugin's Harmony targets are generated-seam factories. A game update can
+        // rename or remove one, so resolution must be checked before Harmony installs anything.
+        var failures = PatchPreflightPolicy.Check(new (string, Func<System.Reflection.MethodBase?>)[]
+        {
+            ("ResolvedPatch", () => typeof(string).GetMethod(nameof(string.ToString), Type.EmptyTypes)),
+            ("MissingTypePatch", () => null),
+        });
+        Equal(1, failures.Count);
+        True(failures[0].Contains("MissingTypePatch", StringComparison.Ordinal), "failure names the patch");
+        True(failures[0].Contains(PatchPreflightPolicy.MissingTarget, StringComparison.Ordinal), "failure names the reason");
+
+        var throwing = PatchPreflightPolicy.Check(new (string, Func<System.Reflection.MethodBase?>)[]
+        {
+            ("ThrowingPatch", () => throw new MissingMethodException("No.Such.Type", "TargetMethod")),
+        });
+        Equal(1, throwing.Count);
+        True(throwing[0].Contains(PatchPreflightPolicy.TargetError, StringComparison.Ordinal), "factory exception is a failure");
+        True(throwing[0].Contains("MissingMethodException", StringComparison.Ordinal), "exception type is reported");
+
+        var empty = PatchPreflightPolicy.Check(
+            Array.Empty<(string, Func<System.Reflection.MethodBase?>)>());
+        Equal(1, empty.Count);
+        True(empty[0].Contains("empty-target-set", StringComparison.Ordinal), "empty inventory is a failure");
+    }
+
+    private static void PatchPreflightAcceptsResolvedInventory()
+    {
+        var failures = PatchPreflightPolicy.Check(new (string, Func<System.Reflection.MethodBase?>)[]
+        {
+            ("FirstPatch", () => typeof(string).GetMethod(nameof(string.ToString), Type.EmptyTypes)),
+            ("SecondPatch", () => typeof(int).GetMethod(nameof(int.ToString), Type.EmptyTypes)),
+        });
+        Equal(0, failures.Count);
+
+        var failure = new PatchPreflightPolicy.PatchPreflightException(new[] { "Patch => missing-target" });
+        True(failure.Message.Contains("Patch => missing-target", StringComparison.Ordinal), "exception carries site failure");
+        Equal(1, failure.Failures.Count);
+    }
+
+    private static void PatchPreflightAggregatesInOrder()
+    {
+        var failures = PatchPreflightPolicy.Check(new (string, Func<System.Reflection.MethodBase?>)[]
+        {
+            ("AlphaPatch", () => null),
+            ("BetaPatch", () => typeof(string).GetMethod(nameof(string.ToString), Type.EmptyTypes)),
+            ("GammaPatch", () => null),
+        });
+        Equal(2, failures.Count);
+        True(failures[0].StartsWith("AlphaPatch", StringComparison.Ordinal), "first failure keeps declaration order");
+        True(failures[1].StartsWith("GammaPatch", StringComparison.Ordinal), "second failure keeps declaration order");
     }
 
     private static void RemoteSceneSourcePrepareGate()

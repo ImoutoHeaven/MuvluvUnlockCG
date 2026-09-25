@@ -22,6 +22,15 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
 
     public override void Load()
     {
+        // Gate loading on target resolution: a game update that moved a generated seam must abort
+        // before configuration side effects or runtime initialization, so a partially patched
+        // plugin cannot reach the runtime.
+        var preflightFailures = HarmonyPatchDiagnostics.Precheck(Log);
+        if (preflightFailures.Count > 0)
+        {
+            throw new PatchPreflightPolicy.PatchPreflightException(preflightFailures);
+        }
+
         _enabled = Config.Bind(
             "General",
             "Enabled",
@@ -45,7 +54,8 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
             Log.LogInfo($"{MuvluvUnlockRuntime.DiagnosticPrefix} local SceneFrame directory exists={Directory.Exists(sceneDataRoot)}");
             if (!allPatchesInstalled)
             {
-                Log.LogWarning($"{MuvluvUnlockRuntime.DiagnosticPrefix} one or more Harmony targets are not owned by this plugin; native flow remains enabled for those targets.");
+                throw new InvalidOperationException(
+                    "one or more Harmony targets are not owned by this plugin after install");
             }
         }
         catch (Exception exception)
@@ -60,7 +70,7 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
                 Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} patch-install cleanup failed; exception={unpatchException.GetType().FullName}; stack={unpatchException.StackTrace}");
             }
 
-            Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} local episode hooks failed to load; native flow remains enabled. exception={exception.GetType().FullName}; stack={exception.StackTrace}");
+            Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} local episode hooks failed to load; loading aborted before any patch was installed. exception={exception.GetType().FullName}; stack={exception.StackTrace}");
         }
     }
 
