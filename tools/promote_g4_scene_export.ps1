@@ -15,6 +15,8 @@ param(
 
     [string] $ValidatorImage = 'python:3.12-slim',
 
+    [switch] $SkipValidation,
+
     [switch] $Preview
 )
 
@@ -81,7 +83,7 @@ function Invoke-G4Validation([string] $SourceRoot, [string] $Label) {
         throw "$Label Docker validation is not compatible: status=$status"
     }
 
-    Write-Output "$Label validation=compatible scenes=$($validation.scene_count) bytes=$($validation.scene_bytes) frames=$($validation.frame_count) overlap=$($validation.original_overlap_record_count) mismatch=$($validation.mismatch_count)"
+    Write-Host "$Label validation=compatible scenes=$($validation.scene_count) bytes=$($validation.scene_bytes) frames=$($validation.frame_count) overlap=$($validation.original_overlap_record_count) mismatch=$($validation.mismatch_count)"
     return $report
 }
 
@@ -204,8 +206,12 @@ if ($status.Count -ne 0) {
     throw 'SceneFrame data repository must be clean before promotion'
 }
 
-$freshReport = Invoke-G4Validation $export 'fresh-export'
-$freshManifest = Get-Content -LiteralPath (Join-Path $export 'manifest.json') -Raw | ConvertFrom-Json
+if ($SkipValidation) {
+    Write-Warning 'validation is skipped: the fresh export and the synchronized corpus stay unverified'
+}
+else {
+    $null = Invoke-G4Validation $export 'fresh-export'
+}
 $plan = Get-SyncPlan $export $data
 Write-Output "sync-plan add=$($plan.Add.Count) update=$($plan.Update.Count) remove=$($plan.Remove.Count)"
 if ($plan.Add.Count -gt 0) { Write-Output ('add: ' + ($plan.Add -join ', ')) }
@@ -217,20 +223,14 @@ if ($Preview) {
     exit 0
 }
 
-if ($PSCmdlet.ShouldProcess($data, 'synchronize validated G4 export')) {
-    foreach ($relative in @('manifest.json', 'scenes.json')) {
-        Copy-Item -LiteralPath (Join-Path $export $relative) -Destination (Join-Path $data $relative) -Force
+if ($PSCmdlet.ShouldProcess($data, 'synchronize G4 export')) {
+    foreach ($relative in @($plan.Add) + @($plan.Update)) {
+        $destination = Join-Path $data $relative
+        New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $export $relative) -Destination $destination -Force
     }
 
-    $sourceSceneRoot = Join-Path $export 'scene'
     $targetSceneRoot = Join-Path $data 'scene'
-    New-Item -ItemType Directory -Path $targetSceneRoot -Force | Out-Null
-    foreach ($sourceFile in Get-ChildItem -LiteralPath $sourceSceneRoot -File -Recurse) {
-        $relative = [IO.Path]::GetRelativePath($sourceSceneRoot, $sourceFile.FullName)
-        $destination = Join-Path $targetSceneRoot $relative
-        New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
-        Copy-Item -LiteralPath $sourceFile.FullName -Destination $destination -Force
-    }
 
     foreach ($relative in $plan.Remove) {
         $target = Join-Path $data $relative
@@ -245,9 +245,11 @@ if ($PSCmdlet.ShouldProcess($data, 'synchronize validated G4 export')) {
         Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0 } |
         Remove-Item -Force
 
-    $syncedReport = Invoke-G4Validation $data 'synced-data'
-    $syncedManifest = Get-Content -LiteralPath (Join-Path $data 'manifest.json') -Raw | ConvertFrom-Json
-    Write-ValidationLedger $data $syncedReport $syncedManifest
+    if (-not $SkipValidation) {
+        $syncedReport = Invoke-G4Validation $data 'synced-data'
+        $syncedManifest = Get-Content -LiteralPath (Join-Path $data 'manifest.json') -Raw | ConvertFrom-Json
+        Write-ValidationLedger $data $syncedReport $syncedManifest
+    }
 
     $check = Invoke-GitReadOnly $data @('diff', '--check')
     $stat = Invoke-GitReadOnly $data @('diff', '--stat')
