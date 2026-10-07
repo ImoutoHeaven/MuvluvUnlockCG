@@ -61,6 +61,14 @@ class ExportResult(NamedTuple):
 
 
 SCENE_KEYS = {"assets", "commands", "id", "notes", "preloaded", "title"}
+
+
+def is_exportable_catalog_row(row: dict) -> bool:
+    """Reject the placeholders the G4 catalog emits for content it does not ship."""
+    scene_id = row.get("id")
+    return isinstance(scene_id, str) and scene_id.isascii() and scene_id.isdigit()
+
+
 FRAME_KEYS = {
     "background",
     "branchId",
@@ -200,13 +208,16 @@ class ExportCollector:
                 return None
             if self._scene_index >= len(self._catalog_rows):
                 raise ValueError("received more per-scene markers than catalog rows")
-            scene_id = str(self._catalog_rows[self._scene_index]["id"])
+            row = self._catalog_rows[self._scene_index]
+            scene_id = str(row["id"])
             if self._pending_scene:
                 self._scenes[scene_id] = self._pending_scene.pop()
-                state = "scene"
-            else:
+                state = "scene" if is_exportable_catalog_row(row) else "placeholder"
+            elif is_exportable_catalog_row(row):
                 self._missing.append(scene_id)
                 state = f"missing:{scene_id}"
+            else:
+                state = "placeholder"
             self._scene_index += 1
             return state
         return None
@@ -317,16 +328,22 @@ const timer = setInterval(() => {
     )
 
 
-def write_export(output: Path, launcher: Path, result: ExportResult) -> None:
+def write_export(output: Path, launcher: Path, result: ExportResult) -> int:
+    """Write the export and return the number of exported Scenes."""
     if output.exists():
         raise ValueError(f"output already exists: {output}")
-    catalog = json.loads(result.catalog.decode("utf-8-sig"))
+    catalog = [
+        row
+        for row in json.loads(result.catalog.decode("utf-8-sig"))
+        if is_exportable_catalog_row(row)
+    ]
+    catalog_body = (json.dumps(catalog, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     frame_counts = {
         str(row["id"]): len(extract_scene_frames(str(row["id"]), result.scenes[str(row["id"])]))
         for row in catalog
     }
     output.mkdir(parents=True)
-    (output / "scenes.json").write_bytes(result.catalog)
+    (output / "scenes.json").write_bytes(catalog_body)
     manifest_scenes: list[dict[str, object]] = []
     for row in catalog:
         scene_id = str(row["id"])
@@ -349,8 +366,8 @@ def write_export(output: Path, launcher: Path, result: ExportResult) -> None:
         "format": "muvluv-g4-scene-export-v1",
         "launcher": launcher.name,
         "launcherSha256": launcher_sha256,
-        "catalogBytes": len(result.catalog),
-        "catalogSha256": hashlib.sha256(result.catalog).hexdigest(),
+        "catalogBytes": len(catalog_body),
+        "catalogSha256": hashlib.sha256(catalog_body).hexdigest(),
         "sceneCount": len(manifest_scenes),
         "frameCount": sum(frame_counts.values()),
         "scenes": manifest_scenes,
@@ -358,6 +375,7 @@ def write_export(output: Path, launcher: Path, result: ExportResult) -> None:
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    return len(catalog)
 
 
 def capture(launcher: Path, timeout: float) -> ExportResult:
@@ -542,11 +560,14 @@ def main() -> int:
         raise SystemExit(f"output already exists: {output}")
     try:
         result = capture(launcher, args.timeout)
-        write_export(output, launcher, result)
+        scene_count = write_export(output, launcher, result)
     except (RuntimeError, ValueError) as error:
         print(f"result=failed reason={error}", flush=True)
         return 1
-    print(f"result=complete scenes={len(result.scenes)} output={output}", flush=True)
+    skipped = len(result.scenes) - scene_count
+    print(f"result=complete scenes={scene_count} output={output}", flush=True)
+    if skipped:
+        print(f"placeholder_entries_skipped={skipped}", flush=True)
     return 0
 
 

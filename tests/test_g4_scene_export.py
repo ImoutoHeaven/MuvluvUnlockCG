@@ -8,6 +8,8 @@ Evidence:
 from __future__ import annotations
 
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -107,6 +109,53 @@ class ResourceFrameContractTests(unittest.TestCase):
         changed = [[7, 40003301, None, 9, '{"Phrase":{"Text":"different"}}']]
         with self.assertRaisesRegex(ValueError, "ConfigurationJson"):
             MODULE.compare_original_scene_frames("40003301", changed, exported)
+
+
+    def test_writes_only_real_scenes_and_skips_g4_placeholders(self) -> None:
+        catalog = json.dumps(
+            [
+                {
+                    "id": "40000002",
+                    "rootUrl": "./public/scene/40000002/",
+                    "sceneUrl": "./public/scene/40000002/scene.json",
+                    "storyType": "character",
+                    "preloaded": False,
+                },
+                {
+                    "id": "missing-400089",
+                    "rootUrl": "./public/scene/missing-400089/",
+                    "sceneUrl": "./public/scene/missing-400089/scene.json",
+                    "storyType": "missing",
+                    "preloaded": False,
+                    "visualOnly": True,
+                },
+            ],
+            ensure_ascii=False,
+            indent=2,
+        ).encode("utf-8") + b"\n"
+        scene = (
+            b'{"assets":[],"commands":[{"line":1,"type":"muvluvFrame","frame":{'
+            b'"order":1,"sceneId":40000002,"branchId":null,"selectedBranchId":null,'
+            b'"configuration":{},"background":{},"characters":[],"needsHideText":false}}],'
+            b'"id":"40000002","notes":[],"preloaded":false,"title":"fixture"}'
+        )
+        result = MODULE.ExportResult(
+            catalog, {"40000002": scene, "missing-400089": b'{"id":"missing-400089"}'}
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            launcher = root / "MuvLuvGGX.exe"
+            launcher.write_bytes(b"launcher")
+            output = root / "export"
+
+            self.assertEqual(1, MODULE.write_export(output, launcher, result))
+
+            written = json.loads((output / "scenes.json").read_text(encoding="utf-8"))
+            self.assertEqual(["40000002"], [row["id"] for row in written])
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(1, manifest["sceneCount"])
+            self.assertFalse((output / "scene" / "missing-400089").exists())
 
 
 if __name__ == "__main__":
