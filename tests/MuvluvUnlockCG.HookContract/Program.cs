@@ -14,6 +14,7 @@ using Assets.GameUi.Service;
 using HarmonyLib;
 using Cysharp.Threading.Tasks;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using MuvluvUnlockCG.Core;
 using EventChapterEpisodeCell = Assets.GameUi.Episode.EventChapter.EpisodeCell.EventEpisodeCell;
 using EventCatalogCell = Assets.GameUi.Episode.EventEpisodeCell;
 using MainChapterEpisodeCell = Assets.GameUi.Episode.MainChapter.EpisodeCell.MainEpisodeCell;
@@ -47,21 +48,30 @@ public readonly record struct CallbackSignature(
 
 internal static class Program
 {
+    private sealed record LambdaSeam(
+        Type DeclaringType,
+        string FamilyPrefix,
+        Type[] ParameterTypes,
+        Type ReturnType);
+
     private readonly record struct HookCase(
         string PatchType,
         string DeclaringType,
         string MethodName,
         string[] ParameterTypes,
+        string[] ParameterNames,
         CallbackSignature[] Callbacks,
-        string Evidence);
+        string Evidence,
+        LambdaSeam Lambda = null);
 
     private static readonly HookCase[] Cases =
     {
         new HookCase(
             "CharacterCellFactoryPatch",
             "Assets.GameUi.Episode.EpisodeController",
-            "_GenerateCharacterCellArgs_b__54_0",
+            MuvluvUnlockCG.GeneratedLambdaSeams.CharacterCellName,
             new[] { "System.Int64" },
+            new[] { "episodeMasterId" },
             new[]
             {
                 Postfix(
@@ -69,12 +79,18 @@ internal static class Program
                     Value("episodeMasterId", typeof(long)),
                     Value("__result", typeof(CharacterEpisodeCell.CharacterEpisodeCellArgs))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Episode__EpisodeController.txt:<GenerateCharacterCellArgs>b__54_0"),
+            "evidence/target-map.md row 1; evidence/GameUi-inventory.tsv:55907",
+            new LambdaSeam(
+                typeof(EpisodeController),
+                MuvluvUnlockCG.GeneratedLambdaSeams.CharacterCellFamily,
+                new[] { typeof(long) },
+                typeof(CharacterEpisodeCell.CharacterEpisodeCellArgs))),
         new HookCase(
             "MemoryCellFactoryPatch",
             "Assets.GameUi.Episode.EpisodeController",
-            "_GenerateMemoryCellArgs_b__56_1",
+            MuvluvUnlockCG.GeneratedLambdaSeams.MemoryCellName,
             new[] { "System.Int64" },
+            new[] { "episodeMasterId" },
             new[]
             {
                 Postfix(
@@ -82,12 +98,18 @@ internal static class Program
                     Value("episodeMasterId", typeof(long)),
                     Value("__result", typeof(MemoryEpisodeCell.MemoryEpisodeCellArgs))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Episode__EpisodeController.txt:<GenerateMemoryCellArgs>b__56_1"),
+            "evidence/target-map.md row 2; evidence/GameUi-inventory.tsv:55910",
+            new LambdaSeam(
+                typeof(EpisodeController),
+                MuvluvUnlockCG.GeneratedLambdaSeams.MemoryCellFamily,
+                new[] { typeof(long) },
+                typeof(MemoryEpisodeCell.MemoryEpisodeCellArgs))),
         new HookCase(
             "CharacterApplySyncPartStateMachinePatch",
             "Assets.GameUi.Episode.CharacterEpisodeCell+_ApplySyncPart_d__32",
             "MoveNext",
             Array.Empty<string>(),
+            Array.Empty<string>(),
             new[]
             {
                 Prefix(
@@ -97,12 +119,13 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(CharacterEpisodeCell._ApplySyncPart_d__32))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/CharacterEpisodeCell_NestedType__ApplySyncPart_d__32.txt:1024-1142"),
+            "evidence/target-map.md row 3; evidence/GameUi-inventory.tsv:193988"),
         new HookCase(
             "MemoryApplyStateMachinePatch",
             "Assets.GameUi.Episode.MemoryEpisodeCell+_Apply_d__16",
             "MoveNext",
             Array.Empty<string>(),
+            Array.Empty<string>(),
             new[]
             {
                 Prefix(
@@ -112,42 +135,45 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(MemoryEpisodeCell._Apply_d__16))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/MemoryEpisodeCell_NestedType__Apply_d__16.txt:423-460"),
+            "evidence/target-map.md row 4; evidence/GameUi-inventory.tsv:194243"),
         new HookCase(
             "EventCatalogApplyStateMachinePatch",
             "Assets.GameUi.Episode.EventEpisodeCell+_Apply_d__17",
             "MoveNext",
             Array.Empty<string>(),
-            new[]
-            {
-                Prefix(
-                    typeof(void),
-                    Value("__instance", typeof(EventCatalogCell._Apply_d__17))),
-                Finalizer(
-                    Value("__exception", typeof(Exception)),
-                    Value("__instance", typeof(EventCatalogCell._Apply_d__17))),
-            },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EventEpisodeCell_NestedType__Apply_d__17.txt:930-1025"),
-        new HookCase(
-            "EventSelectCellStateMachinePatch",
-            "Assets.GameUi.Episode.EpisodeController+_SelectEventCell_d__58",
-            "MoveNext",
             Array.Empty<string>(),
             new[]
             {
                 Prefix(
                     typeof(void),
-                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__58))),
+                    Value("__instance", typeof(EventCatalogCell._Apply_d__17))),
                 Finalizer(
                     Value("__exception", typeof(Exception)),
-                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__58))),
+                    Value("__instance", typeof(EventCatalogCell._Apply_d__17))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeComponent_NestedType___ProcessOnCreate_b__32_18_d.txt:359-364; evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController_NestedType__SelectEventCell_d__58.txt:803-832,978-1013; evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode/EpisodeController.cs:3299-3377"),
+            "evidence/target-map.md row 5; evidence/GameUi-inventory.tsv:194125"),
+        new HookCase(
+            "EventSelectCellStateMachinePatch",
+            "Assets.GameUi.Episode.EpisodeController+_SelectEventCell_d__65",
+            "MoveNext",
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            new[]
+            {
+                Prefix(
+                    typeof(void),
+                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__65))),
+                Finalizer(
+                    Value("__exception", typeof(Exception)),
+                    Value("__instance", typeof(EpisodeController._SelectEventCell_d__65))),
+            },
+            "evidence/target-map.md row 6; evidence/GameUi-inventory.tsv:195587"),
         new HookCase(
             "MainChapterCellFactoryPatch",
             "Assets.GameUi.Episode.EpisodeController",
-            "_GenerateMainChapterCellArgs_b__72_1",
+            MuvluvUnlockCG.GeneratedLambdaSeams.MainChapterCellName,
             new[] { "Assets.Api.Client.ChapterGroupMaster" },
+            new[] { "v" },
             new[]
             {
                 Postfix(
@@ -155,25 +181,32 @@ internal static class Program
                     Value("v", typeof(ChapterGroupMaster)),
                     Value("__result", typeof(MainChapterCell.MainChapterCellArgs))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController.txt:13642-13764"),
+            "evidence/target-map.md row 7; evidence/GameUi-inventory.tsv:55913",
+            new LambdaSeam(
+                typeof(EpisodeController),
+                MuvluvUnlockCG.GeneratedLambdaSeams.MainChapterCellFamily,
+                new[] { typeof(ChapterGroupMaster) },
+                typeof(MainChapterCell.MainChapterCellArgs))),
         new HookCase(
             "MainChapterButtonFactoryPatch",
-            "Assets.GameUi.Episode.EpisodeController+__c__DisplayClass71_0",
+            "Assets.GameUi.Episode.EpisodeController+__c__DisplayClass78_0",
             "_RefreshMainChapterPanelModel_b__2",
             new[] { "Assets.Api.Client.ChapterMaster" },
+            new[] { "v" },
             new[]
             {
                 Postfix(
-                    Value("__instance", typeof(EpisodeController.__c__DisplayClass71_0)),
+                    Value("__instance", typeof(EpisodeController.__c__DisplayClass78_0)),
                     Value("v", typeof(ChapterMaster)),
                     Value("__result", typeof(EpisodeController.MainChapterSelectButtonViewModel))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController_NestedType___c__DisplayClass71_0.txt:480-515"),
+            "evidence/target-map.md row 8; evidence/GameUi-inventory.tsv:195411"),
         new HookCase(
             "EventChapterCellFactoryPatch",
             "Assets.GameUi.Episode.EpisodeController",
-            "_GenerateEventCellArgs_b__51_1",
+            MuvluvUnlockCG.GeneratedLambdaSeams.EventCellName,
             new[] { "System.Int64" },
+            new[] { "chapterMasterId" },
             new[]
             {
                 Postfix(
@@ -181,12 +214,18 @@ internal static class Program
                     Value("chapterMasterId", typeof(long)),
                     Value("__result", typeof(EventCatalogCell.EventEpisodeCellArgs))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController.txt:8955-9008"),
+            "evidence/target-map.md row 9; evidence/GameUi-inventory.tsv:55901",
+            new LambdaSeam(
+                typeof(EpisodeController),
+                MuvluvUnlockCG.GeneratedLambdaSeams.EventCellFamily,
+                new[] { typeof(long) },
+                typeof(EventCatalogCell.EventEpisodeCellArgs))),
         new HookCase(
             "MainEpisodeFilterPatch",
             "Assets.GameUi.Episode.MainChapter.MainEpisodeController",
             "_GenerateEpisodeCellArgs_b__15_0",
             new[] { "Assets.Api.Client.EpisodeMaster" },
+            new[] { "v" },
             new[]
             {
                 Postfix(
@@ -194,12 +233,13 @@ internal static class Program
                     Value("v", typeof(EpisodeMaster)),
                     Ref("__result", typeof(bool))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/MainChapter/MainEpisodeController.txt:846-940"),
+            "evidence/target-map.md row 10; evidence/GameUi-inventory.tsv:56203"),
         new HookCase(
             "MainEpisodeCellFactoryPatch",
             "Assets.GameUi.Episode.MainChapter.MainEpisodeController",
             "_GenerateEpisodeCellArgs_b__15_1",
             new[] { "Assets.Api.Client.EpisodeMaster" },
+            new[] { "episodeMaster" },
             new[]
             {
                 Postfix(
@@ -207,12 +247,13 @@ internal static class Program
                     Value("episodeMaster", typeof(EpisodeMaster)),
                     Value("__result", typeof(MainChapterEpisodeCell.MainEpisodeCellArgs))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/MainChapter/MainEpisodeController.txt:1320-1971"),
+            "evidence/target-map.md row 11; evidence/GameUi-inventory.tsv:56204"),
         new HookCase(
             "EventEpisodeCellFactoryPatch",
             "Assets.GameUi.Episode.EventChapter.EventChapterController+__c__DisplayClass22_0",
             "_GenerateEpisodeCellArgs_b__0",
             new[] { "Assets.Api.Client.EpisodeMaster" },
+            new[] { "episodeMaster" },
             new[]
             {
                 Postfix(
@@ -220,42 +261,45 @@ internal static class Program
                     Value("episodeMaster", typeof(EpisodeMaster)),
                     Value("__result", typeof(EventChapterEpisodeCell.EventEpisodeCellArgs))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EventChapter/EventChapterController.txt:1343-1445"),
+            "evidence/target-map.md row 12; evidence/GameUi-inventory.tsv:196562"),
         new HookCase(
             "CharacterMoveToAdventureStateMachinePatch",
-            "Assets.GameUi.Episode.EpisodeController+_MoveToAdventure_d__60",
+            "Assets.GameUi.Episode.EpisodeController+_MoveToAdventure_d__67",
             "MoveNext",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
                 Prefix(
                     typeof(void),
-                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__60))),
+                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__67))),
                 Finalizer(
                     Value("__exception", typeof(Exception)),
-                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__60))),
+                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__67))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510; evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController.txt:3526-3648 (state=-1 at 3562); evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode/EpisodeController.cs:2429-2556"),
+            "evidence/target-map.md row 13; evidence/GameUi-inventory.tsv:195428"),
         new HookCase(
             "MemoryMoveToAdventureStateMachinePatch",
-            "Assets.GameUi.Episode.EpisodeController+_MoveToAdventure_d__61",
+            "Assets.GameUi.Episode.EpisodeController+_MoveToAdventure_d__68",
             "MoveNext",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
                 Prefix(
                     typeof(void),
-                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__61))),
+                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__68))),
                 Finalizer(
                     Value("__exception", typeof(Exception)),
-                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__61))),
+                    Value("__instance", typeof(EpisodeController._MoveToAdventure_d__68))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356; evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EpisodeController.txt:3664-3780 (state=-1 at 3697); evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode/EpisodeController.cs:2581-2691"),
+            "evidence/target-map.md row 14; evidence/GameUi-inventory.tsv:195455"),
         new HookCase(
             "MainMoveToScenarioStateMachinePatch",
             "Assets.GameUi.Episode.MainChapter.MainEpisodeController+_MoveToScenario_d__14",
             "MoveNext",
             Array.Empty<string>(),
+            Array.Empty<string>(),
             new[]
             {
                 Prefix(
@@ -265,11 +309,12 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(MainEpisodeController._MoveToScenario_d__14))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/MainChapter/MainEpisodeController_NestedType__MoveToScenario_d__14.txt:315-318; evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode.MainChapter/MainEpisodeController.cs:216-314"),
+            "evidence/target-map.md row 15; evidence/GameUi-inventory.tsv:196091"),
         new HookCase(
             "EventMoveToScenarioStateMachinePatch",
             "Assets.GameUi.Episode.EventChapter.EventChapterController+_MoveToScenario_d__19",
             "MoveNext",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -280,11 +325,12 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(EventChapterController._MoveToScenario_d__19))),
             },
-            "evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/EventChapter/EventChapterController_NestedType__MoveToScenario_d__19.txt:293-296; evidence/decomp/interop-src/GameUi/Assets.GameUi.Episode.EventChapter/EventChapterController.cs:936-1035"),
+            "evidence/target-map.md row 16; evidence/GameUi-inventory.tsv:196638"),
         new HookCase(
             "ScenarioRefreshPatch",
             "Assets.GameUi.Scenario.ScenarioController",
             "Refresh",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -293,11 +339,12 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(ScenarioController))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Scenario__ScenarioController_NestedType__Refresh_d__76.txt:MoveNext"),
+            "evidence/target-map.md row 17; evidence/GameUi-inventory.tsv:17953"),
         new HookCase(
             "ScenarioPostReadProvenancePatch",
             "Assets.GameUi.Scenario.ScenarioController",
             "PostRead",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -306,11 +353,12 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(ScenarioController))),
             },
-            "evidence/decomp/interop-src/GameUi/Assets.GameUi.Scenario/ScenarioController.cs:PostRead()"),
+            "evidence/target-map.md row 18; evidence/GameUi-inventory.tsv:17940"),
         new HookCase(
             "ScenarioPostReadStateMachinePatch",
             "Assets.GameUi.Scenario.ScenarioController+_PostRead_d__104",
             "MoveNext",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -321,12 +369,13 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(ScenarioController._PostRead_d__104))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Scenario__ScenarioController_NestedType__PostRead_d__104.txt:MoveNext"),
+            "evidence/target-map.md row 19; evidence/GameUi-inventory.tsv:109654"),
         new HookCase(
             "ScenarioPostBranchSelectionProvenancePatch",
             "Assets.GameUi.Scenario.ScenarioController",
             "PostBranchSelection",
             new[] { "System.Int64", "Il2CppSystem.Nullable`1[[System.Int64, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]" },
+            new[] { "frameId", "selectionMasterId" },
             new[]
             {
                 Prefix(typeof(void), Value("__instance", typeof(ScenarioController))),
@@ -334,11 +383,12 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(ScenarioController))),
             },
-            "evidence/decomp/interop-src/GameUi/Assets.GameUi.Scenario/ScenarioController.cs:PostBranchSelection(long, Nullable<long>)"),
+            "evidence/target-map.md row 20; evidence/GameUi-inventory.tsv:17939"),
         new HookCase(
             "ScenarioPostBranchSelectionStateMachinePatch",
             "Assets.GameUi.Scenario.ScenarioController+_PostBranchSelection_d__103",
             "MoveNext",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -351,11 +401,12 @@ internal static class Program
                     Value("__instance", typeof(ScenarioController._PostBranchSelection_d__103)),
                     Value("__state", typeof(long))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Scenario__ScenarioController_NestedType__PostBranchSelection_d__103.txt:543-544,1108-1270"),
+            "evidence/target-map.md row 21; evidence/GameUi-inventory.tsv:109624"),
         new HookCase(
             "ScenarioLeavePatch",
             "Assets.GameUi.Scenario.ScenarioController",
             "Leave",
+            Array.Empty<string>(),
             Array.Empty<string>(),
             new[]
             {
@@ -364,12 +415,13 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(ScenarioController))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Scenario__ScenarioController_NestedType__Leave_d__85.txt:MoveNext"),
+            "evidence/target-map.md row 22; evidence/GameUi-inventory.tsv:17921"),
         new HookCase(
             "EpisodeServiceSceneFramesPatch",
             "Assets.GameUi.Service.EpisodeService",
             "DownloadSceneFrameMasters",
             new[] { "System.Int64" },
+            new[] { "sceneMasterId" },
             new[]
             {
                 Prefix(
@@ -381,12 +433,13 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(EpisodeService))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Service__EpisodeService_NestedType__DownloadSceneFrameMasters_d__15.txt:cache-before-dataSource"),
+            "evidence/target-map.md row 23; evidence/GameUi-inventory.tsv:11992"),
         new HookCase(
             "EpisodeServicePostReadPatch",
             "Assets.GameUi.Service.EpisodeService",
             "PostRead",
             new[] { "System.Int64", "System.Boolean", "System.Boolean" },
+            new[] { "episodeMasterId", "isNewStory", "updateSequenceWhenPostRead" },
             new[]
             {
                 Prefix(
@@ -398,7 +451,7 @@ internal static class Program
                     Value("__exception", typeof(Exception)),
                     Value("__instance", typeof(EpisodeService))),
             },
-            "evidence/decomp/selected/GameUi__Assets__GameUi__Service__EpisodeService_NestedType__PostRead_d__16.txt:MoveNext"),
+            "evidence/target-map.md row 24; evidence/GameUi-inventory.tsv:11993"),
     };
 
     private static CallbackParameterSignature Value(string name, Type parameterType)
@@ -498,12 +551,70 @@ internal static class Program
             {
                 Equal(hook.DeclaringType, target.DeclaringType?.FullName, "declaring type");
                 Equal(hook.MethodName, target.Name, "method name");
-                var parameterTypes = target.GetParameters().Select(parameter => parameter.ParameterType.FullName).ToArray();
+                var parameters = target.GetParameters();
+                var parameterTypes = parameters.Select(parameter => parameter.ParameterType.FullName).ToArray();
                 if (!parameterTypes.SequenceEqual(hook.ParameterTypes))
                 {
                     throw new InvalidOperationException(
                         $"parameter types expected [{string.Join(", ", hook.ParameterTypes)}], " +
                         $"actual [{string.Join(", ", parameterTypes)}]");
+                }
+
+                // Harmony injects these callback arguments by name, so a target-side rename would
+                // keep the shape check green and fail only at install time.
+                var parameterNames = parameters.Select(parameter => parameter.Name).ToArray();
+                if (!parameterNames.SequenceEqual(hook.ParameterNames))
+                {
+                    throw new InvalidOperationException(
+                        $"parameter names expected [{string.Join(", ", hook.ParameterNames)}], " +
+                        $"actual [{string.Join(", ", parameterNames)}]");
+                }
+
+                if (hook.Lambda is not null)
+                {
+                    var exact = hook.Lambda.DeclaringType.GetMethod(
+                        hook.MethodName,
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+                        binder: null,
+                        hook.Lambda.ParameterTypes,
+                        modifiers: null);
+                    if (exact is null || exact.ReturnType != hook.Lambda.ReturnType)
+                    {
+                        throw new InvalidOperationException(
+                            $"exact current generated name {hook.MethodName} is absent or has a different signature");
+                    }
+
+                    var resolved = GeneratedLambdaTargetResolver.Resolve(
+                        hook.Lambda.DeclaringType,
+                        hook.MethodName,
+                        hook.Lambda.FamilyPrefix,
+                        hook.Lambda.ParameterTypes,
+                        hook.Lambda.ReturnType);
+                    if (!Equals(resolved, exact) || !Equals(exact, target))
+                    {
+                        throw new InvalidOperationException(
+                            "generated lambda resolver expected " +
+                            $"{exact.DeclaringType?.FullName}.{exact.Name}, actual " +
+                            (resolved is null
+                                ? "<null>"
+                                : $"{resolved.DeclaringType?.FullName}.{resolved.Name}"));
+                    }
+
+                    // The production family prefix must stay narrow enough to name exactly one
+                    // candidate: a broadened prefix would make this seam ambiguous.
+                    var familyCandidates = hook.Lambda.DeclaringType
+                        .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                        .Where(method => method.Name.StartsWith(hook.Lambda.FamilyPrefix, StringComparison.Ordinal)
+                            && method.ReturnType == hook.Lambda.ReturnType
+                            && method.GetParameters().Select(parameter => parameter.ParameterType)
+                                .SequenceEqual(hook.Lambda.ParameterTypes))
+                        .ToArray();
+                    if (familyCandidates.Length != 1 || !Equals(familyCandidates[0], exact))
+                    {
+                        throw new InvalidOperationException(
+                            $"generated lambda family {hook.Lambda.FamilyPrefix}* must match exactly one method " +
+                            $"with the target signature, actual {familyCandidates.Length}");
+                    }
                 }
 
                 if (!actualCallbacks.TryGetValue(hook.PatchType, out var actualCallbacksForPatch)
@@ -614,7 +725,7 @@ internal static class Program
                 throw new InvalidOperationException("full cleanup retained catalog decisions");
             }
 
-            Console.WriteLine($"PASS {contract} <- native d60/d61 entry cleanup retains current catalog decisions");
+            Console.WriteLine($"PASS {contract} <- native d__67/d__68 entry cleanup retains current catalog decisions");
         }
         catch (Exception exception)
         {

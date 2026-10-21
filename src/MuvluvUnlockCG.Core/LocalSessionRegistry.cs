@@ -197,11 +197,8 @@ public sealed class LocalSessionRegistry
         IntPtr apiClientController = default)
     {
         session = null!;
-        // Full ISIL callers invoke d60/d61.MoveNext directly at
-        // evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-        // EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510
-        // and evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-        // EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356.
+        // Full ISIL callers invoke the character d__67 and memory d__68
+        // MoveNext directly (evidence/target-map.md rows 13-14).
         // PostRead d16 and branch d103 still require these exact service/API
         // identities before a Character/Memory LocalBypass session is valid.
         // Main/Event MoveToScenario state machines do not carry either service

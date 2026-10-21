@@ -14,7 +14,7 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
 {
     public const string PluginGuid = "com.pixelabyss.muvluv.unlockcg";
     public const string PluginName = "Muv-Luv Local Episode Playback";
-    public const string PluginVersion = "1.2.0";
+    public const string PluginVersion = "1.2.1";
 
     private Harmony _harmony;
     private ConfigEntry<bool> _enabled;
@@ -70,7 +70,7 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
                 Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} patch-install cleanup failed; exception={unpatchException.GetType().FullName}; stack={unpatchException.StackTrace}");
             }
 
-            Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} local episode hooks failed to load; loading aborted before any patch was installed. exception={exception.GetType().FullName}; stack={exception.StackTrace}");
+            Log.LogError($"{MuvluvUnlockRuntime.DiagnosticPrefix} local episode hooks did not install; the plugin stays inactive after cleanup. exception={exception.GetType().FullName}; stack={exception.StackTrace}");
         }
     }
 
@@ -79,8 +79,8 @@ public sealed class MuvluvUnlockCGPlugin : BasePlugin
         Log.LogInfo($"{MuvluvUnlockRuntime.DiagnosticPrefix} unload requested enabled={_enabled?.Value ?? false}");
         // Keep the Harmony hooks installed when a native Viewable setter could
         // not be restored. CellVisibilityRegistry retains the strong wrapper
-        // lease for a retry; d60:418-421/d61:268-271 consume that live native
-        // bit, so unpatching here would strand it.
+        // lease for a retry; the d__67/d__68 entry state machines consume that
+        // live native bit, so unpatching here would strand it.
         var unloaded = UnloadLifecyclePolicy.TryUnload(
             () => MuvluvUnlockRuntime.ClearAll("unload"),
             () => _harmony?.UnpatchSelf());

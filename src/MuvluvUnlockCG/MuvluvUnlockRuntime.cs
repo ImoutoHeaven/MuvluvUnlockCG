@@ -83,7 +83,7 @@ internal static class MuvluvUnlockRuntime
         string remoteBaseUrl = null)
     {
         // Keep the registry lock before the catalog lock. Entry/leave cleanup
-        // follows this order (selected EpisodeController d__60/d__61 and
+        // follows this order (selected EpisodeController d__67/d__68 and
         // ScenarioController <Leave>d__85), so initialization cannot deadlock
         // with a lifecycle callback that is already clearing a session.
         ClearAll("initialize");
@@ -110,7 +110,7 @@ internal static class MuvluvUnlockRuntime
     {
         // Session lifecycle hooks and catalog capture use the same lock order:
         // registry first, catalog second. The exact replacement/leave seams are
-        // selected EpisodeController d__60/d__61 and ScenarioController
+        // selected EpisodeController d__67/d__68 and ScenarioController
         // <Leave>d__85.
         var before = SafeDescribeState();
         Sessions.ClearAll();
@@ -261,7 +261,7 @@ internal static class MuvluvUnlockRuntime
         }
         catch (Exception exception)
         {
-            // The b54_0 individual Character cell seam is persisted evidence;
+            // The b60_0 individual Character cell seam is persisted evidence;
             // an adapter error must not leave an older local generation alive.
             ClearAll("character-cell-exception");
             SafeLogException($"character cell policy failed for episode {episodeMasterId}; native row retained", exception);
@@ -337,7 +337,7 @@ internal static class MuvluvUnlockRuntime
         }
         catch (Exception exception)
         {
-            // The b56_0/b56_1 release and cell seams are persisted evidence;
+            // The b62_0/b62_1 release and cell seams are persisted evidence;
             // an adapter error must not leave an older local generation alive.
             ClearAll("memory-cell-exception");
             SafeLogException($"memory cell policy failed for episode {episodeMasterId}; native row retained", exception);
@@ -432,11 +432,11 @@ internal static class MuvluvUnlockRuntime
 
             try
             {
-                // EpisodeController.SelectEventCell d58 checks this nested
+                // EpisodeController.SelectEventCell d__65 checks this nested
                 // value before opening EventChapterUnlockWindow
-                // (persisted ISIL :978-1025). Null is the native chapter
-                // navigation branch; promoting CanUnlock would instead expose
-                // the account-backed unlock action.
+                // (evidence/target-map.md row 6). Null is the
+                // native chapter navigation branch; promoting CanUnlock would
+                // instead expose the account-backed unlock action.
                 args.EventEpisodeUnlockArgs = null;
             }
             catch
@@ -491,7 +491,7 @@ internal static class MuvluvUnlockRuntime
     }
 
     public static void OnEventSelectCellStateMachine(
-        EpisodeController._SelectEventCell_d__58 stateMachine)
+        EpisodeController._SelectEventCell_d__65 stateMachine)
     {
         try
         {
@@ -753,17 +753,14 @@ internal static class MuvluvUnlockRuntime
 
     /// <summary>
     /// The public typed wrappers only construct the async state machines. The
-    /// persisted callers invoke d60/d61.MoveNext directly
-    /// (evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-    /// EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510 and
-    /// EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356),
-    /// so entry policy belongs on that real seam. The wrappers initialize d60/
-    /// d61 state to -1 (evidence/decomp/full-isil/IsilDump/GameUi/Assets/
-    /// GameUi/Episode/EpisodeController.txt:3562 and :3697); a resumed state is
-    /// deliberately native and cannot create another pending generation.
+    /// persisted callers invoke the character d__67 and memory d__68 MoveNext
+    /// directly, so entry policy belongs on that real seam
+    /// (evidence/target-map.md rows 13-14). The wrappers
+    /// initialize those state machines to -1; a resumed state is deliberately
+    /// native and cannot create another pending generation.
     /// </summary>
     public static void OnCharacterMoveToAdventureStateMachine(
-        EpisodeController._MoveToAdventure_d__60 stateMachine)
+        EpisodeController._MoveToAdventure_d__67 stateMachine)
     {
         try
         {
@@ -790,7 +787,7 @@ internal static class MuvluvUnlockRuntime
     }
 
     public static void OnMemoryMoveToAdventureStateMachine(
-        EpisodeController._MoveToAdventure_d__61 stateMachine)
+        EpisodeController._MoveToAdventure_d__68 stateMachine)
     {
         try
         {
@@ -814,13 +811,13 @@ internal static class MuvluvUnlockRuntime
     }
 
     /// <summary>
-    /// d60/d61 use the generated args.LockMessage only while their native lock
-    /// branch is active. Restore the original cell value after the state
+    /// d__67/d__68 use the generated args.LockMessage only while their native
+    /// lock branch is active. Restore the original cell value after the state
     /// machine completes or faults; a suspended await keeps the message until
-    /// its next terminal MoveNext (full ISIL d60:636-669, :928-940 and d61:551-567).
+    /// its next terminal MoveNext.
     /// </summary>
     public static void OnCharacterMoveToAdventureStateMachineExit(
-        EpisodeController._MoveToAdventure_d__60 stateMachine,
+        EpisodeController._MoveToAdventure_d__67 stateMachine,
         Exception exception)
     {
         try
@@ -839,7 +836,7 @@ internal static class MuvluvUnlockRuntime
     }
 
     public static void OnMemoryMoveToAdventureStateMachineExit(
-        EpisodeController._MoveToAdventure_d__61 stateMachine,
+        EpisodeController._MoveToAdventure_d__68 stateMachine,
         Exception exception)
     {
         try
@@ -885,7 +882,7 @@ internal static class MuvluvUnlockRuntime
     /// and controller (MainEpisodeController.cs:216-314;
     /// EventChapterController.cs:936-1035), so initial state -1 is the only
     /// place to establish a Master-derived local generation. Resumes remain
-    /// native, exactly like d60/d61.
+    /// native, exactly like d__67/d__68.
     /// </summary>
     public static void OnMainMoveToScenarioStateMachine(
         MainEpisodeController._MoveToScenario_d__14 stateMachine)
@@ -1762,7 +1759,7 @@ internal static class MuvluvUnlockRuntime
                     else
                     {
                         // EpisodeComponent callers can invoke d103.MoveNext
-                        // directly just as the persisted d60/d61 callers do.
+                        // directly just as the persisted d__67/d__68 callers do.
                         // The exact active Bound identity is sufficient proof at
                         // this generated seam; do not read nullable fields or
                         // manufacture a generic API result. The d103 prefix can
@@ -1916,10 +1913,9 @@ internal static class MuvluvUnlockRuntime
         {
             // There is only one local generation. Entry cleanup invalidates its
             // session and temporary presentation state, but the surrounding
-            // catalog remains active and sibling d60/d61 selections still need
-            // the decisions captured by their cell factories (evidence/decomp/
-            // full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-            // EpisodeController.txt:3526-3780).
+            // catalog remains active and sibling d__67/d__68 selections still
+            // need the decisions captured by their cell factories
+            // (evidence/target-map.md rows 13-14).
             ClearState(reason, clearCatalogDecisions: false);
         }
         catch (Exception exception)
@@ -1997,10 +1993,9 @@ internal static class MuvluvUnlockRuntime
             {
                 // The LocalBypass route is proven only by the complete expected
                 // SceneMaster set from remote or local static sources. Keep the
-                // native d60/d61 lock branch and use its public transient
+                // native d__67/d__68 lock branch and use its public transient
                 // LockMessage field; this avoids entering with an empty native
-                // frame sequence and prevents the misleading EPSD008 path
-                // (full ISIL d60:529-559, :616-623 and d61:551-555).
+                // frame sequence and prevents the misleading EPSD008 path.
                 ClearForEntry(controller, episodeMasterId, $"{kind}-entry-local-sceneframe-missing");
                 var message = BuildMissingSceneFrameMessage(episodeMasterId, sceneIds, preparations);
                 if (TrySetTemporaryLockMessage(new CellIdentity(controllerPointer, episodeMasterId), args, message))
@@ -2057,7 +2052,7 @@ internal static class MuvluvUnlockRuntime
                 return;
             }
 
-            // The initial d60/d61 MoveNext reads this distinct entry object as
+            // The initial d__67/d__68 MoveNext reads this distinct entry object as
             // soon as the prefix returns. Do every fallible route proof first so
             // fail-open paths keep the native bit without depending on rollback.
             var entryViewable = EligibilityPolicy.ResolveEntryViewable(captured, decision, originalEntryViewable);
@@ -2450,7 +2445,7 @@ internal static class MuvluvUnlockRuntime
         }
 
         // ChapterGroupMaster.ChaptersMaster is the exact generated relation
-        // getter (evidence/decomp/interop-src/Api/Assets.Api.Client/
+        // getter published by the generated Api interop (Api interop
         // ChapterGroupMaster.cs:386-398). Do not index MemoryDB.ChaptersMaster
         // with an ordinal: that KeyedCollection<long,T> indexer treats the
         // value as a chapter ID and produced the live presentation exception.
@@ -2549,7 +2544,7 @@ internal static class MuvluvUnlockRuntime
 
     /// <summary>
     /// Captures and replaces only the transient BaseEpisodeCellArgs.LockMessage
-    /// consumed by the native d60/d61 locked-entry branches. The public setter
+    /// consumed by the native d__67/d__68 locked-entry branches. The public setter
     /// and backing-field fallback are both persisted in interop
     /// EpisodeComponent.cs:957-1033; no modal/navigation method is hooked.
     /// </summary>
@@ -2600,7 +2595,7 @@ internal static class MuvluvUnlockRuntime
                     }
 
                     // Preserve the first native value when a generated entry
-                    // seam retries before d60/d61 reaches its terminal state.
+                    // seam retries before d__67/d__68 reaches its terminal state.
                     originalMessage = existing.OriginalMessage;
                 }
 
@@ -2990,8 +2985,8 @@ internal static class MuvluvUnlockRuntime
     /// IL2CPP wrapper makes that generated method unavailable, the persisted
     /// interop source exposes the same native backing-field accessor at
     /// EpisodeComponent.cs lines 971-981. Both routes target the original
-    /// native bit consumed by d60:418-421/d61:268-271; a double failure retains
-    /// the strong registry lease for a later lifecycle retry.
+    /// native bit consumed by the entry state machines (d__67/d__68); a double
+    /// failure retains the strong registry lease for a later lifecycle retry.
     /// </summary>
     private static bool RestoreVisibleCell(object wrapper, bool originalViewable)
     {

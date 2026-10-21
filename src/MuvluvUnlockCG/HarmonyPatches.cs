@@ -136,20 +136,43 @@ internal static class HarmonyPatchDiagnostics
 /// paths remain untouched.
 /// </summary>
 /// <summary>
-/// Evidence: selected GameUi__Assets__GameUi__Episode__EpisodeController.txt
-/// marks &lt;GenerateCharacterCellArgs&gt;b__54_0(long) as the individual character
-/// cell construction seam, before the native list filter consumes Viewable;
-/// d__60 lines 418-421 branch on that same field before navigation.
+/// The runtime-resolved generated seams, named once. The compiler renumbers the numeric suffix
+/// of a generated lambda when its enclosing method changes, so each entry pairs the exact current
+/// name with the factory-family prefix that <see cref="GeneratedLambdaTargetResolver"/> may fall
+/// back to. The hook contract asserts these exact values against the installed interop.
+/// </summary>
+internal static class GeneratedLambdaSeams
+{
+    internal const string CharacterCellName = "_GenerateCharacterCellArgs_b__60_0";
+    internal const string CharacterCellFamily = "_GenerateCharacterCellArgs_b__";
+    internal const string MemoryCellName = "_GenerateMemoryCellArgs_b__62_1";
+    internal const string MemoryCellFamily = "_GenerateMemoryCellArgs_b__";
+    internal const string MainChapterCellName = "_GenerateMainChapterCellArgs_b__79_1";
+    internal const string MainChapterCellFamily = "_GenerateMainChapterCellArgs_b__";
+    internal const string EventCellName = "_GenerateEventCellArgs_b__57_1";
+    internal const string EventCellFamily = "_GenerateEventCellArgs_b__";
+}
+
+/// <summary>
+/// Evidence: evidence/target-map.md row 1; evidence/GameUi-inventory.tsv:55907
+/// (with 55848) records
+/// _GenerateCharacterCellArgs_b__60_0 returning CharacterEpisodeCellArgs for
+/// one Int64, and evidence/ilspy/EpisodeController.cs:5108 shows the same.
+/// This is the individual character cell factory seam; the separately named
+/// Viewable consumption in the entry state machine rests on the persisted ISIL
+/// dumps cited by EligibilityPolicy.ResolveEntryViewable.
 /// </summary>
 [HarmonyPatch]
 internal static class CharacterCellFactoryPatch
 {
     private static MethodBase TargetMethod()
     {
-        return AccessTools.Method(
+        return GeneratedLambdaTargetResolver.Resolve(
             typeof(EpisodeController),
-            "_GenerateCharacterCellArgs_b__54_0",
-            new[] { typeof(long) });
+            GeneratedLambdaSeams.CharacterCellName,
+            GeneratedLambdaSeams.CharacterCellFamily,
+            new[] { typeof(long) },
+            typeof(CharacterEpisodeCell.CharacterEpisodeCellArgs));
     }
 
     [HarmonyPostfix]
@@ -163,20 +186,25 @@ internal static class CharacterCellFactoryPatch
 }
 
 /// <summary>
-/// Evidence: selected GameUi__Assets__GameUi__Episode__EpisodeController.txt
-/// marks &lt;GenerateMemoryCellArgs&gt;b__56_1(long), and the sibling b56_0 release
-/// filter remains native. This postfix changes only LocalBypass visibility;
-/// d__61 lines 268-271 consume the same Viewable bit.
+/// Evidence: evidence/target-map.md row 2; evidence/GameUi-inventory.tsv:55910
+/// (with 55851) records
+/// _GenerateMemoryCellArgs_b__62_1 returning MemoryEpisodeCellArgs for one
+/// Int64, and evidence/ilspy/EpisodeController.cs:5147 shows the same. The
+/// sibling b__62_0 release filter remains native. The identically typed b__63_1
+/// belongs to the separate GenerateSpecialMemoryCellArgs factory and is out of
+/// this seam's family prefix. This postfix changes only LocalBypass visibility.
 /// </summary>
 [HarmonyPatch]
 internal static class MemoryCellFactoryPatch
 {
     private static MethodBase TargetMethod()
     {
-        return AccessTools.Method(
+        return GeneratedLambdaTargetResolver.Resolve(
             typeof(EpisodeController),
-            "_GenerateMemoryCellArgs_b__56_1",
-            new[] { typeof(long) });
+            GeneratedLambdaSeams.MemoryCellName,
+            GeneratedLambdaSeams.MemoryCellFamily,
+            new[] { typeof(long) },
+            typeof(MemoryEpisodeCell.MemoryEpisodeCellArgs));
     }
 
     [HarmonyPostfix]
@@ -190,9 +218,10 @@ internal static class MemoryCellFactoryPatch
 }
 
 /// <summary>
-/// Evidence: CharacterEpisodeCell_NestedType__ApplySyncPart_d__32.txt:1024-1142
-/// reads the state machine's own args and drives characterLockContainer and
-/// progressLockContainer. The factory args postfix can run before/after this
+/// Evidence: evidence/GameUi-inventory.tsv:193988 identifies
+/// CharacterEpisodeCell+_ApplySyncPart_d__32 with args : CharacterEpisodeCellArgs.
+/// The persisted ISIL dump for that state machine reads those args and drives
+/// characterLockContainer and progressLockContainer. The factory args postfix can run before/after this
 /// async consumer, so reapply only the captured LocalBypass presentation here;
 /// Normal rows have no lease and remain native.
 /// </summary>
@@ -223,8 +252,10 @@ internal static class CharacterApplySyncPartStateMachinePatch
 }
 
 /// <summary>
-/// Evidence: MemoryEpisodeCell_NestedType__Apply_d__16.txt:423-460 reads the
-/// state machine's own args.Viewable to set lockImage active. Reapply the exact
+/// Evidence: evidence/GameUi-inventory.tsv:194243 identifies
+/// MemoryEpisodeCell+_Apply_d__16 with args : MemoryEpisodeCellArgs. The
+/// persisted ISIL dump for that state machine reads args.Viewable to set
+/// lockImage active. Reapply the exact
 /// captured LocalBypass Viewable bit at that generated consumer seam.
 /// </summary>
 [HarmonyPatch]
@@ -254,8 +285,9 @@ internal static class MemoryApplyStateMachinePatch
 }
 
 /// <summary>
-/// Evidence: outer EventEpisodeCell_NestedType__Apply_d__17.txt:930-1025
-/// consumes the nested EventEpisodeUnlockArgs relation and its CanUnlock bit.
+/// Evidence: evidence/GameUi-inventory.tsv:194125 identifies the outer
+/// Episode.EventEpisodeCell+_Apply_d__17 with its nested EventEpisodeUnlockArgs.
+/// The persisted ISIL dump shows it consuming that relation's CanUnlock bit.
 /// This seam keeps the rendered card aligned with its captured local decision.
 /// </summary>
 [HarmonyPatch]
@@ -285,10 +317,12 @@ internal static class EventCatalogApplyStateMachinePatch
 }
 
 /// <summary>
-/// Evidence: EpisodeComponent_NestedType___ProcessOnCreate_b__32_18_d.txt:
-/// 359-364 calls this generated MoveNext directly. SelectEventCell d58 reads
-/// its own args.Viewable at :803-832 and its EventEpisodeUnlockArgs at
-/// :978-1013. The prefix applies the captured presentation only at state -1.
+/// Evidence: evidence/target-map.md row 6; evidence/GameUi-inventory.tsv:195587
+/// and evidence/ilspy/EpisodeController.cs:3613 show _SelectEventCell_d__65 with
+/// __4__this, args, and __1__state. The persisted ISIL dump shows its MoveNext
+/// reading args.Viewable and clearing EventEpisodeUnlockArgs through the nested
+/// unlock relation. The prefix applies
+/// the captured presentation only at state -1.
 /// </summary>
 [HarmonyPatch]
 internal static class EventSelectCellStateMachinePatch
@@ -296,13 +330,13 @@ internal static class EventSelectCellStateMachinePatch
     private static MethodBase TargetMethod()
     {
         return AccessTools.Method(
-            typeof(EpisodeController._SelectEventCell_d__58),
+            typeof(EpisodeController._SelectEventCell_d__65),
             "MoveNext",
             Type.EmptyTypes);
     }
 
     [HarmonyPrefix]
-    private static void Prefix(EpisodeController._SelectEventCell_d__58 __instance)
+    private static void Prefix(EpisodeController._SelectEventCell_d__65 __instance)
     {
         MuvluvUnlockRuntime.OnEventSelectCellStateMachine(__instance);
     }
@@ -310,26 +344,31 @@ internal static class EventSelectCellStateMachinePatch
     [HarmonyFinalizer]
     private static Exception Finalizer(
         Exception __exception,
-        EpisodeController._SelectEventCell_d__58 __instance)
+        EpisodeController._SelectEventCell_d__65 __instance)
     {
         return HarmonyFailureCleanup.Return(__exception, __instance);
     }
 }
 
 /// <summary>
-/// Evidence: EpisodeController b72_1 builds the outer MainChapterCellArgs and
-/// assigns its native CanAccessChapter result to Viewable. Promote only a group
-/// containing a chapter whose Master-derived SceneFrame exists locally.
+/// Evidence: evidence/target-map.md row 7; evidence/GameUi-inventory.tsv:55913
+/// and evidence/ilspy/EpisodeController.cs:5186 show
+/// &lt;GenerateMainChapterCellArgs&gt;b__79_1(ChapterGroupMaster) building the outer
+/// MainChapterCellArgs; the persisted ISIL dump of that lambda assigns the
+/// native CanAccessChapter result to Viewable. Promote only a group containing
+/// a chapter whose Master-derived SceneFrame exists locally.
 /// </summary>
 [HarmonyPatch]
 internal static class MainChapterCellFactoryPatch
 {
     private static MethodBase TargetMethod()
     {
-        return AccessTools.Method(
+        return GeneratedLambdaTargetResolver.Resolve(
             typeof(EpisodeController),
-            "_GenerateMainChapterCellArgs_b__72_1",
-            new[] { typeof(ChapterGroupMaster) });
+            GeneratedLambdaSeams.MainChapterCellName,
+            GeneratedLambdaSeams.MainChapterCellFamily,
+            new[] { typeof(ChapterGroupMaster) },
+            typeof(MainChapterCell.MainChapterCellArgs));
     }
 
     [HarmonyPostfix]
@@ -343,9 +382,12 @@ internal static class MainChapterCellFactoryPatch
 }
 
 /// <summary>
-/// Evidence: EpisodeController display-class b71_2 builds each chapter selector
-/// and writes !CanAccessChapter to IsLock. Local corpus availability may clear
-/// only that presentation lock.
+/// Evidence: evidence/target-map.md row 8; evidence/GameUi-inventory.tsv:195411
+/// and evidence/ilspy/EpisodeController.cs:2585-2657 show
+/// __c__DisplayClass78_0._RefreshMainChapterPanelModel_b__2(ChapterMaster)
+/// returning MainChapterSelectButtonViewModel; the persisted ISIL dump shows
+/// that lambda writing !CanAccessChapter to IsLock.
+/// Local corpus availability may clear only that presentation lock.
 /// </summary>
 [HarmonyPatch]
 internal static class MainChapterButtonFactoryPatch
@@ -353,14 +395,14 @@ internal static class MainChapterButtonFactoryPatch
     private static MethodBase TargetMethod()
     {
         return AccessTools.Method(
-            typeof(EpisodeController.__c__DisplayClass71_0),
+            typeof(EpisodeController.__c__DisplayClass78_0),
             "_RefreshMainChapterPanelModel_b__2",
             new[] { typeof(ChapterMaster) });
     }
 
     [HarmonyPostfix]
     private static void Postfix(
-        EpisodeController.__c__DisplayClass71_0 __instance,
+        EpisodeController.__c__DisplayClass78_0 __instance,
         ChapterMaster v,
         EpisodeController.MainChapterSelectButtonViewModel __result)
     {
@@ -372,9 +414,11 @@ internal static class MainChapterButtonFactoryPatch
 }
 
 /// <summary>
-/// Evidence: EpisodeController b51_1 builds the outer EventEpisodeCellArgs and
-/// stores native access in Viewable. Promote only an exact chapter backed by
-/// runtime Chapter -> Episode -> Scene Master relations; a missing local JSON
+/// Evidence: evidence/target-map.md row 9; evidence/GameUi-inventory.tsv:55901
+/// and evidence/ilspy/EpisodeController.cs:5030 show
+/// &lt;GenerateEventCellArgs&gt;b__57_1(long) returning EventEpisodeCellArgs; the
+/// persisted ISIL dump of that lambda stores native access in Viewable. Promote only an exact chapter backed
+/// by runtime Chapter -> Episode -> Scene Master relations; a missing local JSON
 /// stays on the native SceneFrame acquisition path.
 /// </summary>
 [HarmonyPatch]
@@ -382,10 +426,12 @@ internal static class EventChapterCellFactoryPatch
 {
     private static MethodBase TargetMethod()
     {
-        return AccessTools.Method(
+        return GeneratedLambdaTargetResolver.Resolve(
             typeof(EpisodeController),
-            "_GenerateEventCellArgs_b__51_1",
-            new[] { typeof(long) });
+            GeneratedLambdaSeams.EventCellName,
+            GeneratedLambdaSeams.EventCellFamily,
+            new[] { typeof(long) },
+            typeof(EventCatalogCell.EventEpisodeCellArgs));
     }
 
     [HarmonyPostfix]
@@ -495,13 +541,13 @@ internal static class EventEpisodeCellFactoryPatch
 }
 
 /// <summary>
-/// Evidence: the full ISIL caller
-/// evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-/// EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510 calls
-/// &lt;MoveToAdventure&gt;d__60.MoveNext directly, bypassing the public typed
-/// wrapper. The generated interop exposes the real seam and its state/args/
-/// controller fields at EpisodeController.cs:2429-2556. The prefix therefore
-/// handles only initial state -1; continuations are native resumes.
+/// Evidence: evidence/target-map.md row 13; evidence/GameUi-inventory.tsv:195428
+/// and evidence/ilspy/EpisodeController.cs:2727 show _MoveToAdventure_d__67 with
+/// args : CharacterEpisodeCellArgs and no type field, which identifies the
+/// character entry state machine. Persisted callers invoke its MoveNext
+/// directly, bypassing the public typed wrapper, and the persisted ISIL dump
+/// shows the resulting state and args reads. The prefix therefore handles only
+/// initial state -1; continuations are native resumes.
 /// </summary>
 [HarmonyPatch]
 internal static class CharacterMoveToAdventureStateMachinePatch
@@ -509,14 +555,14 @@ internal static class CharacterMoveToAdventureStateMachinePatch
     private static MethodBase TargetMethod()
     {
         return AccessTools.Method(
-            typeof(EpisodeController._MoveToAdventure_d__60),
+            typeof(EpisodeController._MoveToAdventure_d__67),
             "MoveNext",
             Type.EmptyTypes);
     }
 
     [HarmonyPrefix]
     private static void Prefix(
-        EpisodeController._MoveToAdventure_d__60 __instance)
+        EpisodeController._MoveToAdventure_d__67 __instance)
     {
         MuvluvUnlockRuntime.OnCharacterMoveToAdventureStateMachine(__instance);
     }
@@ -524,7 +570,7 @@ internal static class CharacterMoveToAdventureStateMachinePatch
     [HarmonyFinalizer]
     private static Exception Finalizer(
         Exception __exception,
-        EpisodeController._MoveToAdventure_d__60 __instance)
+        EpisodeController._MoveToAdventure_d__67 __instance)
     {
         MuvluvUnlockRuntime.OnCharacterMoveToAdventureStateMachineExit(__instance, __exception);
         return HarmonyFailureCleanup.Return(__exception, __instance);
@@ -532,12 +578,12 @@ internal static class CharacterMoveToAdventureStateMachinePatch
 }
 
 /// <summary>
-/// Evidence: the full ISIL caller
-/// evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-/// EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356 calls
-/// &lt;MoveToAdventure&gt;d__61.MoveNext directly, bypassing the public typed
-/// wrapper. The generated interop exposes the real seam and its state/args/
-/// controller fields at EpisodeController.cs:2581-2691. The prefix therefore
+/// Evidence: evidence/target-map.md row 14; evidence/GameUi-inventory.tsv:195455
+/// and evidence/ilspy/EpisodeController.cs:2879 show _MoveToAdventure_d__68 with
+/// args : MemoryEpisodeCellArgs and type : EpisodeService.EpisodeTypes, which
+/// identifies the memory entry state machine. Persisted callers invoke its
+/// MoveNext directly, bypassing the public typed wrapper, and the persisted
+/// ISIL dump shows the resulting state and args reads. The prefix therefore
 /// handles only initial state -1; continuations are native resumes.
 /// </summary>
 [HarmonyPatch]
@@ -546,14 +592,14 @@ internal static class MemoryMoveToAdventureStateMachinePatch
     private static MethodBase TargetMethod()
     {
         return AccessTools.Method(
-            typeof(EpisodeController._MoveToAdventure_d__61),
+            typeof(EpisodeController._MoveToAdventure_d__68),
             "MoveNext",
             Type.EmptyTypes);
     }
 
     [HarmonyPrefix]
     private static void Prefix(
-        EpisodeController._MoveToAdventure_d__61 __instance)
+        EpisodeController._MoveToAdventure_d__68 __instance)
     {
         MuvluvUnlockRuntime.OnMemoryMoveToAdventureStateMachine(__instance);
     }
@@ -561,7 +607,7 @@ internal static class MemoryMoveToAdventureStateMachinePatch
     [HarmonyFinalizer]
     private static Exception Finalizer(
         Exception __exception,
-        EpisodeController._MoveToAdventure_d__61 __instance)
+        EpisodeController._MoveToAdventure_d__68 __instance)
     {
         MuvluvUnlockRuntime.OnMemoryMoveToAdventureStateMachineExit(__instance, __exception);
         return HarmonyFailureCleanup.Return(__exception, __instance);

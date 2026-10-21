@@ -5,11 +5,10 @@ namespace MuvluvUnlockCG.Core;
 
 /// <summary>
 /// Identity of an individual generated episode cell. The cell factory evidence
-/// (EpisodeController b54_0/b56_1) and the d60/d61 MoveNext entry seams share
-/// this episode/controller boundary. Full ISIL callers are persisted at
-/// evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-/// EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510 and
-/// EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356.
+/// (EpisodeController &lt;GenerateCharacterCellArgs&gt;b__60_0 and
+/// &lt;GenerateMemoryCellArgs&gt;b__62_1, evidence/target-map.md
+/// rows 1-2) and the d__67/d__68 MoveNext entry seams share this
+/// episode/controller boundary.
 /// </summary>
 public readonly record struct CellIdentity(IntPtr EpisodeController, long EpisodeId)
 {

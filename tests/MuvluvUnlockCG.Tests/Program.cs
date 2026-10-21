@@ -44,7 +44,12 @@ internal static class Program
         Run("patch preflight reports unresolved targets", PatchPreflightReportsUnresolvedTargets);
         Run("patch preflight accepts a fully resolved inventory", PatchPreflightAcceptsResolvedInventory);
         Run("patch preflight aggregates failures in declaration order", PatchPreflightAggregatesInOrder);
-        Console.WriteLine($"tests: {_passed}/25 passed");
+        Run("generated lambda target resolves the exact current name", GeneratedLambdaTargetResolvesExactName);
+        Run("generated lambda target falls back within its factory family", GeneratedLambdaTargetFallsBackWithinFamily);
+        Run("generated lambda target rejects ambiguity", GeneratedLambdaTargetRejectsAmbiguity);
+        Run("generated lambda target rejects a signature mismatch", GeneratedLambdaTargetRejectsSignatureMismatch);
+        Run("generated lambda target reports an absent family", GeneratedLambdaTargetReportsAbsentFamily);
+        Console.WriteLine($"tests: {_passed}/30 passed");
     }
 
     private static void Run(string name, Action test)
@@ -167,8 +172,9 @@ internal static class Program
 
     private static void CellDecisionsPreserveNativeFields()
     {
-        // Evidence: selected EpisodeController <GenerateCharacterCellArgs>b__54_0
-        // is the individual factory seam. LocalBypass may set only Viewable.
+        // Evidence: evidence/target-map.md row 1, where
+        // <GenerateCharacterCellArgs>b__60_0 is the individual factory seam.
+        // LocalBypass may set only Viewable.
         var nativeCharacter = EligibilityPolicy.ForCharacterCell(
             new CharacterCellFacts(301, false, false, 9, 10, LocallyAvailable: true));
         Equal(PlaybackMode.LocalBypass, nativeCharacter.Eligibility.Mode);
@@ -186,8 +192,9 @@ internal static class Program
         Equal(PlaybackMode.Normal, nativeNormalHidden.Eligibility.Mode);
         False(nativeNormalHidden.Viewable, "normal character does not gain visibility");
 
-        // Evidence: selected EpisodeController <GenerateMemoryCellArgs>b__56_1
-        // plus b__56_0 keeps the native release boundary independent of bypass.
+        // Evidence: evidence/target-map.md row 2, where
+        // <GenerateMemoryCellArgs>b__62_1 is the cell factory and sibling
+        // b__62_0 keeps the native release boundary independent of bypass.
         var releasedMemory = EligibilityPolicy.ForMemoryCell(
             new MemoryCellFacts(303, false, true, true, LocallyAvailable: true));
         Equal(PlaybackMode.LocalBypass, releasedMemory.Eligibility.Mode);
@@ -239,13 +246,11 @@ internal static class Program
 
     private static void EntryVisibilityPromotionPolicy()
     {
-        // Evidence: persisted ISIL
-        // evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-        // EpisodeController_NestedType__MoveToAdventure_d__60.txt:399-421 and
-        // ...d__61.txt:249-271 read the entry state's own args.Viewable before
-        // the native route. The entry object is distinct from the catalog
-        // factory object, so only an exact captured LocalBypass decision may
-        // promote its value.
+        // Evidence: evidence/target-map.md rows 13-14 identify the
+        // d__67 (character) and d__68 (memory) entry state machines by their
+        // args type; each reads its own args.Viewable before the native route.
+        // The entry object is distinct from the catalog factory object, so only
+        // an exact captured LocalBypass decision may promote its value.
         var bypass = new EligibilityDecision(PlaybackMode.LocalBypass, BypassReason.UnownedCharacter);
         True(
             EligibilityPolicy.ResolveEntryViewable(true, bypass, false),
@@ -382,9 +387,9 @@ internal static class Program
 
     private static void CellVisibilityRestorationLifecycle()
     {
-        // Evidence: selected EpisodeController MoveToAdventure d__60/d__61
-        // lines d60:418-421 and d61:268-271 branch on the same Viewable bit
-        // changed by the b54_0/b56_1 cell factories. Every bypass path must
+        // Evidence: evidence/target-map.md rows 1-2 and 13-14.
+        // The d__67/d__68 entry state machines branch on the same Viewable bit
+        // changed by the b__60_0/b__62_1 cell factories. Every bypass path must
         // therefore restore the captured native value before native continuation.
         var registry = new CellVisibilityRegistry();
         var key = new CellIdentity((IntPtr)91, 901);
@@ -482,8 +487,9 @@ internal static class Program
     private static void CellVisibilityStrongLeaseAndSetterFailure()
     {
         // Evidence: interop EpisodeComponent.cs lines 971-981 expose the native
-        // Viewable backing field and d60:418-421/d61:268-271 consume it. The
-        // lease must keep the wrapper alive until that bit is restored.
+        // Viewable backing field and the d__67/d__68 entry state machines
+        // consume it. The lease must keep the wrapper alive until that bit is
+        // restored.
         var local = new EligibilityDecision(PlaybackMode.LocalBypass, BypassReason.UnownedMemory);
         var strongKey = new CellIdentity((IntPtr)95, 906);
         var strongRegistry = new CellVisibilityRegistry();
@@ -515,9 +521,10 @@ internal static class Program
 
     private static void UnloadVisibilityCleanupRetry()
     {
-        // Evidence: d60:418-421/d61:268-271 consume the native Viewable bit and
-        // EpisodeComponent.cs:971-981 exposes its restore route. The plugin
-        // unload seam must not unpatch while this lease is still active.
+        // Evidence: the d__67/d__68 entry state machines consume the native
+        // Viewable bit and EpisodeComponent.cs:971-981 exposes its restore
+        // route. The plugin unload seam must not unpatch while this lease is
+        // still active.
         var local = new EligibilityDecision(PlaybackMode.LocalBypass, BypassReason.UnownedMemory);
         var registry = new CellVisibilityRegistry();
         var key = new CellIdentity((IntPtr)97, 908);
@@ -533,8 +540,8 @@ internal static class Program
         Equal(0, unpatchCalls);
         Equal(1, registry.Count);
         // Unpatch exception behavior is an infrastructure seam rather than a
-        // game claim; the d60/d61 evidence above establishes only why the lease
-        // must remain intact until the restore callback succeeds.
+        // game claim; the d__67/d__68 evidence above establishes only why the
+        // lease must remain intact until the restore callback succeeds.
         False(
             UnloadLifecyclePolicy.TryUnload(
                 () => registry.TryRestoreAll(RestoreFakeCell),
@@ -629,12 +636,9 @@ internal static class Program
 
     private static void SessionCleanup()
     {
-        // Evidence: full ISIL callers invoke d60/d61.MoveNext directly at
-        // evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-        // EpisodeComponent_NestedType__SelectCharacterCell_d__39.txt:505-510
-        // and evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-        // EpisodeComponent_NestedType___ProcessOnCreate_b__32_20_d.txt:351-356;
-        // ScenarioController Leave d__85 defines cleanup.
+        // Evidence: full ISIL callers invoke the character d__67 and memory
+        // d__68 MoveNext directly (evidence/target-map.md rows
+        // 13-14); ScenarioController Leave d__85 defines cleanup.
         var registry = new LocalSessionRegistry();
         True(registry.BeginPending(403, new[] { 505L }, (IntPtr)13, BypassReason.UnownedCharacter, out _, (IntPtr)33, (IntPtr)43), "pending created");
         registry.ClearForEpisode(403);
@@ -951,6 +955,86 @@ internal static class Program
         True(failures[1].StartsWith("GammaPatch", StringComparison.Ordinal), "second failure keeps declaration order");
     }
 
+    private static void GeneratedLambdaTargetResolvesExactName()
+    {
+        // Evidence: C# renumbers the generated lambda suffix when the enclosing
+        // method changes, so the exact current name wins while its signature
+        // still matches.
+        var exact = GeneratedLambdaTargetResolver.Resolve(
+            typeof(ExactLambdaFixture),
+            "_Family_b__12_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(exact is not null, "exact current name resolves");
+        Equal("_Family_b__12_0", exact!.Name);
+    }
+
+    private static void GeneratedLambdaTargetFallsBackWithinFamily()
+    {
+        // Evidence: a moved suffix keeps the factory-family prefix and the exact
+        // signature, the only fallback the resolver accepts. A sibling factory
+        // with an identical signature stays outside the family scan.
+        var moved = GeneratedLambdaTargetResolver.Resolve(
+            typeof(MovedLambdaFixture),
+            "_Family_b__4_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(moved is not null, "moved name resolves through the family scan");
+        Equal("_Family_b__17_0", moved!.Name);
+
+        var sibling = GeneratedLambdaTargetResolver.Resolve(
+            typeof(SiblingFamilyFixture),
+            "_Family_b__4_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(sibling is not null, "family scan keeps the declaring factory family");
+        Equal("_Family_b__9_0", sibling!.Name);
+    }
+
+    private static void GeneratedLambdaTargetRejectsAmbiguity()
+    {
+        var ambiguous = GeneratedLambdaTargetResolver.Resolve(
+            typeof(AmbiguousLambdaFixture),
+            "_Family_b__4_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(ambiguous is null, "several family matches fail closed");
+    }
+
+    private static void GeneratedLambdaTargetRejectsSignatureMismatch()
+    {
+        var wrongReturn = GeneratedLambdaTargetResolver.Resolve(
+            typeof(MismatchedLambdaFixture),
+            "_Family_b__5_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(wrongReturn is null, "return type mismatch fails closed");
+
+        var wrongParameter = GeneratedLambdaTargetResolver.Resolve(
+            typeof(MismatchedLambdaFixture),
+            "_Family_b__5_0",
+            "_Family_b__",
+            new[] { typeof(int) },
+            typeof(int));
+        True(wrongParameter is null, "parameter type mismatch fails closed");
+    }
+
+    private static void GeneratedLambdaTargetReportsAbsentFamily()
+    {
+        var absent = GeneratedLambdaTargetResolver.Resolve(
+            typeof(UnrelatedLambdaFixture),
+            "_Family_b__3_0",
+            "_Family_b__",
+            new[] { typeof(long) },
+            typeof(string));
+        True(absent is null, "an absent family resolves to null");
+    }
+
     private static void RemoteSceneSourcePrepareGate()
     {
         // Evidence: spec.md:101-112 requires Character/Memory/Main to prepare
@@ -1063,6 +1147,44 @@ internal static class Program
         catch (DirectoryNotFoundException)
         {
         }
+    }
+
+    private sealed class ExactLambdaFixture
+    {
+        public string _Family_b__12_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        public bool _Family_b__12_1(long value) => value > 0;
+    }
+
+    private sealed class MovedLambdaFixture
+    {
+        public string _Family_b__17_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        public string _Family_b__17_1(bool value) => value.ToString();
+    }
+
+    private sealed class SiblingFamilyFixture
+    {
+        public string _Family_b__9_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        public string _SpecialFamily_b__9_1(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private sealed class AmbiguousLambdaFixture
+    {
+        public string _Family_b__1_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        public string _Family_b__2_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private sealed class MismatchedLambdaFixture
+    {
+        public int _Family_b__5_0(long value) => (int)value;
+    }
+
+    private sealed class UnrelatedLambdaFixture
+    {
+        public string _Other_b__3_0(long value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private sealed class FakeHttpMessageHandler : HttpMessageHandler

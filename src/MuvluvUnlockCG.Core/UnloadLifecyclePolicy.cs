@@ -4,10 +4,11 @@ namespace MuvluvUnlockCG.Core;
 
 /// <summary>
 /// Public lifecycle seam for the plugin unload decision. The native MoveToAdventure
-/// state machines consume the same Viewable bit that the cell factory temporarily
-/// changes (d60:418-421/d61:268-271), while EpisodeComponent interop exposes the
-/// accessor and backing-field restore routes (EpisodeComponent.cs:971-981). A
-/// failed restore must therefore retain the hooks and lease for a later retry.
+/// state machines (d__67/d__68) consume the same Viewable bit that the cell
+/// factory temporarily changes in their persisted ISIL bodies, while
+/// EpisodeComponent interop exposes the accessor and backing-field restore
+/// routes (EpisodeComponent.cs:971-981). A failed restore must therefore retain
+/// the hooks and lease for a later retry.
 /// </summary>
 public static class UnloadLifecyclePolicy
 {

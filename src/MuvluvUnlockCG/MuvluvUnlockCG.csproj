@@ -17,6 +17,13 @@
   </Target>
 
   <ItemGroup>
+    <!-- The hook contract asserts the exact generated seam names this assembly binds. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>MuvluvUnlockCG.HookContract</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../MuvluvUnlockCG.Core/MuvluvUnlockCG.Core.csproj" />
     <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Core.dll" Private="false" />
     <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Unity.IL2CPP.dll" Private="false" />

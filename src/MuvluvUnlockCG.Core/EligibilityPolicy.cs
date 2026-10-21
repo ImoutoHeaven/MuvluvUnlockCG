@@ -104,10 +104,11 @@ public readonly record struct StoryCellDecision(
 public static class EligibilityPolicy
 {
     /// <summary>
-    /// Evidence: selected/GameUi__Assets__GameUi__Episode__EpisodeController.txt,
-    /// GenerateCharacterCellArgs and &lt;GenerateCharacterCellArgs&gt;b__54_0. The
-    /// native seam's HasCharacter and affection fields are the only Character
-    /// route facts; HasMemory is a RewardPackage ThingTypes.Memory marker.
+    /// Evidence: evidence/target-map.md row 1, where
+    /// &lt;GenerateCharacterCellArgs&gt;b__60_0 builds the individual Character
+    /// cell args. The native seam's HasCharacter and affection fields are the
+    /// only Character route facts; HasMemory is a RewardPackage ThingTypes.Memory
+    /// marker.
     /// </summary>
     public static EligibilityDecision ForCharacter(CharacterEligibilityFacts facts)
     {
@@ -127,10 +128,11 @@ public static class EligibilityPolicy
     }
 
     /// <summary>
-    /// Evidence: selected/GameUi__Assets__GameUi__Episode__EpisodeController.txt,
-    /// GenerateMemoryCellArgs and &lt;GenerateMemoryCellArgs&gt;b__56_0/b__56_1.
-    /// Release is retained as a native catalog boundary; only a released row
-    /// whose original generated cell was not viewable is locally playable.
+    /// Evidence: evidence/target-map.md row 2, where
+    /// &lt;GenerateMemoryCellArgs&gt;b__62_0/b__62_1 are the release filter and cell
+    /// factory. Release is retained as a native catalog boundary; only a
+    /// released row whose original generated cell was not viewable is locally
+    /// playable.
     /// </summary>
     public static EligibilityDecision ForMemory(MemoryEligibilityFacts facts)
     {
@@ -164,13 +166,12 @@ public static class EligibilityPolicy
     }
 
     /// <summary>
-    /// The real d60/d61 entry state machines read their own args.Viewable before
-    /// native navigation (persisted ISIL:
-    /// evidence/decomp/full-isil/IsilDump/GameUi/Assets/GameUi/Episode/
-    /// EpisodeController_NestedType__MoveToAdventure_d__60.txt:399-421 and
-    /// ...d__61.txt:249-271). Only an exact captured LocalBypass decision may
-    /// promote that distinct entry object; Normal or missing evidence keeps its
-    /// original value.
+    /// The real d__67/d__68 entry state machines consume their own
+    /// args.Viewable before native navigation: the persisted ISIL dumps of those
+    /// MoveNext bodies branch on that field, and evidence/target-map.md rows
+    /// 13-14 prove which current type is that seam. Only an exact captured
+    /// LocalBypass decision may promote that distinct entry object; Normal or
+    /// missing evidence keeps its original value.
     /// </summary>
     public static bool ResolveEntryViewable(
         bool captured,
